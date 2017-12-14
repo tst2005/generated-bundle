@@ -1,8 +1,5 @@
 do --{{
-local sources, priorities = {}, {};assert(not sources["match"],"module already exists")sources["match"]=([===[-- <pack match> --
-
-]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
-assert(not sources["evaluator"],"module already exists")sources["evaluator"]=([===[-- <pack evaluator> --
+local sources, priorities = {}, {};assert(not sources["evaluator"],"module already exists")sources["evaluator"]=([===[-- <pack evaluator> --
 
 -- Capture eval
 
@@ -409,6 +406,299 @@ end
 
 end  -- Decorator wrapper
 
+
+--                   The Romantic WTF public license.
+--                   --------------------------------
+--                   a.k.a. version "<3" or simply v3
+--
+--
+--            Dear user,
+--
+--            The LuLPeg library
+--
+--                                             \
+--                                              '.,__
+--                                           \  /
+--                                            '/,__
+--                                            /
+--                                           /
+--                                          /
+--                       has been          / released
+--                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
+--                under  the  Romantic   WTF Public License.
+--               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--               I hereby grant you an irrevocable license to
+--                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                  do what the gentle caress you want to
+--                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                           with   this   lovely
+--                              ~ ~ ~ ~ ~ ~ ~ ~
+--                               / thing...
+--                              /  ~ ~ ~ ~
+--                             /    Love,
+--                        #   /      '.'
+--                        #######      ·
+--                        #####
+--                        ###
+--                        #
+--
+--            -- Pierre-Yves
+--
+--
+--            P.S.: Even though I poured my heart into this work,
+--                  I _cannot_ provide any warranty regarding
+--                  its fitness for _any_ purpose. You
+--                  acknowledge that I will not be held liable
+--                  for any damage its use could incur.
+]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
+assert(not sources["analizer"],"module already exists")sources["analizer"]=([===[-- <pack analizer> --
+
+-- A stub at the moment.
+
+local u = require"util"
+local nop, weakkey = u.nop, u.weakkey
+
+local hasVcache, hasCmtcache , lengthcache
+    = weakkey{}, weakkey{},    weakkey{}
+
+return {
+    hasV = nop,
+    hasCmt = nop,
+    length = nop,
+    hasCapture = nop
+}
+
+
+--                   The Romantic WTF public license.
+--                   --------------------------------
+--                   a.k.a. version "<3" or simply v3
+--
+--
+--            Dear user,
+--
+--            The PureLPeg library
+--
+--                                             \
+--                                              '.,__
+--                                           \  /
+--                                            '/,__
+--                                            /
+--                                           /
+--                                          /
+--                       has been          / released
+--                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
+--                under  the  Romantic   WTF Public License.
+--               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--               I hereby grant you an irrevocable license to
+--                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                  do what the gentle caress you want to
+--                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                           with   this   lovely
+--                              ~ ~ ~ ~ ~ ~ ~ ~
+--                               / thing...
+--                              /  ~ ~ ~ ~
+--                             /    Love,
+--                        #   /      '.'
+--                        #######      ·
+--                        #####
+--                        ###
+--                        #
+--
+--            -- Pierre-Yves
+--
+--
+--            P.S.: Even though I poured my heart into this work,
+--                  I _cannot_ provide any warranty regarding
+--                  its fitness for _any_ purpose. You
+--                  acknowledge that I will not be held liable
+--                  for any damage its use could incur.
+]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
+assert(not sources["factorizer"],"module already exists")sources["factorizer"]=([===[-- <pack factorizer> --
+local ipairs, pairs, print, setmetatable
+    = ipairs, pairs, print, setmetatable
+
+--[[DBG]] local debug = require "debug"
+local u = require"util"
+
+local   id,   nop,   setify,   weakkey
+    = u.id, u.nop, u.setify, u.weakkey
+
+local _ENV = u.noglobals() ----------------------------------------------------
+
+
+
+---- helpers
+--
+
+-- handle the identity or break properties of P(true) and P(false) in
+-- sequences/arrays.
+local
+function process_booleans(a, b, opts)
+    local id, brk = opts.id, opts.brk
+    if a == id then return true, b
+    elseif b == id then return true, a
+    elseif a == brk then return true, brk
+    else return false end
+end
+
+-- patterns where `C(x) + C(y) => C(x + y)` apply.
+local unary = setify{
+    "unm", "lookahead", "C", "Cf",
+    "Cg", "Cs", "Ct", "/zero"
+}
+
+local unary_aux = setify{
+    "behind", "at least", "at most", "Clb", "Cmt",
+    "div_string", "div_number", "div_table", "div_function"
+}
+
+-- patterns where p1 + p2 == p1 U p2
+local unifiable = setify{"char", "set", "range"}
+
+
+local hasCmt; hasCmt = setmetatable({}, {__mode = "k", __index = function(self, pt)
+    local kind, res = pt.pkind, false
+    if kind == "Cmt"
+    or kind == "ref"
+    then
+        res = true
+    elseif unary[kind] or unary_aux[kind] then
+        res = hasCmt[pt.pattern]
+    elseif kind == "choice" or kind == "sequence" then
+        res = hasCmt[pt[1]] or hasCmt[pt[2]]
+    end
+    hasCmt[pt] = res
+    return res
+end})
+
+
+
+return function (Builder, LL) --------------------------------------------------
+
+if Builder.options.factorize == false then
+    return {
+        choice = nop,
+        sequence = nop,
+        lookahead = nop,
+        unm = nop
+    }
+end
+
+local constructors, LL_P =  Builder.constructors, LL.P
+local truept, falsept
+    = constructors.constant.truept
+    , constructors.constant.falsept
+
+local --Range, Set,
+    S_union
+    = --Builder.Range, Builder.set.new,
+    Builder.set.union
+
+local mergeable = setify{"char", "set"}
+
+
+local type2cons = {
+    ["/zero"] = "__div",
+    ["div_number"] = "__div",
+    ["div_string"] = "__div",
+    ["div_table"] = "__div",
+    ["div_function"] = "__div",
+    ["at least"] = "__exp",
+    ["at most"] = "__exp",
+    ["Clb"] = "Cg",
+}
+
+local
+function choice (a, b)
+    do  -- handle the identity/break properties of true and false.
+        local hasbool, res = process_booleans(a, b, { id = falsept, brk = truept })
+        if hasbool then return res end
+    end
+    local ka, kb = a.pkind, b.pkind
+    if a == b and not hasCmt[a] then
+        return a
+    elseif ka == "choice" then -- correct associativity without blowing up the stack
+        local acc, i = {}, 1
+        while a.pkind == "choice" do
+            acc[i], a, i = a[1], a[2], i + 1
+        end
+        acc[i] = a
+        for j = i, 1, -1 do
+            b = acc[j] + b
+        end
+        return b
+    elseif mergeable[ka] and mergeable[kb] then
+        return constructors.aux("set", S_union(a.aux, b.aux))
+    elseif mergeable[ka] and kb == "any" and b.aux == 1
+    or     mergeable[kb] and ka == "any" and a.aux == 1 then
+        -- [[DBG]] print("=== Folding "..ka.." and "..kb..".")
+        return ka == "any" and a or b
+    elseif ka == kb then
+        -- C(a) + C(b) => C(a + b)
+        if (unary[ka] or unary_aux[ka]) and ( a.aux == b.aux ) then
+            return LL[type2cons[ka] or ka](a.pattern + b.pattern, a.aux)
+        elseif ( ka == kb ) and ka == "sequence" then
+            -- "ab" + "ac" => "a" * ( "b" + "c" )
+            if a[1] == b[1]  and not hasCmt[a[1]] then
+                return a[1] * (a[2] + b[2])
+            end
+        end
+    end
+    return false
+end
+
+
+
+local
+function lookahead (pt)
+    return pt
+end
+
+
+local
+function sequence(a, b)
+    -- [[DBG]] print("Factorize Sequence")
+    -- A few optimizations:
+    -- 1. handle P(true) and P(false)
+    do
+        local hasbool, res = process_booleans(a, b, { id = truept, brk = falsept })
+        if hasbool then return res end
+    end
+    -- 2. Fix associativity
+    local ka, kb = a.pkind, b.pkind
+    if ka == "sequence" then -- correct associativity without blowing up the stack
+        local acc, i = {}, 1
+        while a.pkind == "sequence" do
+            acc[i], a, i = a[1], a[2], i + 1
+        end
+        acc[i] = a
+        for j = i, 1, -1 do
+            b = acc[j] * b
+        end
+        return b
+    elseif (ka == "one" or ka == "any") and (kb == "one" or kb == "any") then
+        return LL_P(a.aux + b.aux)
+    end
+    return false
+end
+
+local
+function unm (pt)
+    -- [[DP]] print("Factorize Unm")
+    if     pt == truept            then return falsept
+    elseif pt == falsept           then return truept
+    elseif pt.pkind == "unm"       then return #pt.pattern
+    elseif pt.pkind == "lookahead" then return -pt.pattern
+    end
+end
+
+return {
+    choice = choice,
+    lookahead = lookahead,
+    sequence = sequence,
+    unm = unm
+}
+end
 
 --                   The Romantic WTF public license.
 --                   --------------------------------
@@ -886,6 +1176,1270 @@ end
 --                  acknowledge that I will not be held liable
 --                  for any damage its use could incur.
 ]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
+assert(not sources["optimizer"],"module already exists")sources["optimizer"]=([===[-- <pack optimizer> --
+-- Nothing for now.
+]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
+assert(not sources["printers"],"module already exists")sources["printers"]=([===[-- <pack printers> --
+return function(Builder, LL)
+
+-- Print
+
+local ipairs, pairs, print, tostring, type
+    = ipairs, pairs, print, tostring, type
+
+local s, t, u = require"string", require"table", require"util"
+local S_tostring = Builder.set.tostring
+
+
+local _ENV = u.noglobals() ----------------------------------------------------
+
+
+
+local s_char, s_sub, t_concat
+    = s.char, s.sub, t.concat
+
+local   expose,   load,   map
+    = u.expose, u.load, u.map
+
+local escape_index = {
+    ["\f"] = "\\f",
+    ["\n"] = "\\n",
+    ["\r"] = "\\r",
+    ["\t"] = "\\t",
+    ["\v"] = "\\v",
+    ["\127"] = "\\ESC"
+}
+
+local function flatten(kind, list)
+    if list[2].pkind == kind then
+        return list[1], flatten(kind, list[2])
+    else
+        return list[1], list[2]
+    end
+end
+
+for i = 0, 8 do escape_index[s_char(i)] = "\\"..i end
+for i = 14, 31 do escape_index[s_char(i)] = "\\"..i end
+
+local
+function escape( str )
+    return str:gsub("%c", escape_index)
+end
+
+local
+function set_repr (set) 
+    return s_char(load("return "..S_tostring(set))())
+end
+
+
+local printers = {}
+
+local
+function LL_pprint (pt, offset, prefix)
+    -- [[DBG]] print("PRINT -", pt)
+    -- [[DBG]] print("PRINT +", pt.pkind)
+    -- [[DBG]] expose(pt)
+    -- [[DBG]] expose(LL.proxycache[pt])
+    return printers[pt.pkind](pt, offset, prefix)
+end
+
+function LL.pprint (pt0)
+    local pt = LL.P(pt0)
+    print"\nPrint pattern"
+    LL_pprint(pt, "", "")
+    print"--- /pprint\n"
+    return pt0
+end
+
+for k, v in pairs{
+    string       = [[ "P( \""..escape(pt.as_is).."\" )"       ]],
+    char         = [[ "P( \""..escape(to_char(pt.aux)).."\" )"]],
+    ["true"]     = [[ "P( true )"                     ]],
+    ["false"]    = [[ "P( false )"                    ]],
+    eos          = [[ "~EOS~"                         ]],
+    one          = [[ "P( one )"                      ]],
+    any          = [[ "P( "..pt.aux.." )"             ]],
+    set          = [[ "S( "..'"'..escape(set_repr(pt.aux))..'"'.." )" ]],
+    ["function"] = [[ "P( "..pt.aux.." )"             ]],
+    ref = [[
+        "V( ",
+            (type(pt.aux) == "string" and "\""..pt.aux.."\"")
+                          or tostring(pt.aux)
+        , " )"
+        ]],
+    range = [[
+        "R( ",
+            escape(t_concat(map(
+                pt.as_is,
+                function(e) return '"'..e..'"' end)
+            , ", "))
+        ," )"
+        ]]
+} do
+    printers[k] = load(([==[
+        local k, map, t_concat, to_char, escape, set_repr = ...
+        return function (pt, offset, prefix)
+            print(t_concat{offset,prefix,XXXX})
+        end
+    ]==]):gsub("XXXX", v), k.." printer")(k, map, t_concat, s_char, escape, set_repr)
+end
+
+
+for k, v in pairs{
+    ["behind"] = [[ LL_pprint(pt.pattern, offset, "B ") ]],
+    ["at least"] = [[ LL_pprint(pt.pattern, offset, pt.aux.." ^ ") ]],
+    ["at most"] = [[ LL_pprint(pt.pattern, offset, pt.aux.." ^ ") ]],
+    unm        = [[LL_pprint(pt.pattern, offset, "- ")]],
+    lookahead  = [[LL_pprint(pt.pattern, offset, "# ")]],
+    choice = [[
+        print(offset..prefix.."+")
+        -- dprint"Printer for choice"
+        local ch, i = {}, 1
+        while pt.pkind == "choice" do
+            ch[i], pt, i = pt[1], pt[2], i + 1
+        end
+        ch[i] = pt
+
+        map(ch, LL_pprint, offset.." :", "")
+        ]],
+    sequence = [=[
+        -- print("Seq printer", s, u)
+        -- u.expose(pt)
+        print(offset..prefix.."*")
+        local acc, p2 = {}
+        offset = offset .. " |"
+        while true do
+            if pt.pkind ~= "sequence" then -- last element
+                if pt.pkind == "char" then
+                    acc[#acc + 1] = pt.aux
+                    print(offset..'P( "'..s.char(u.unpack(acc))..'" )')
+                else
+                    if #acc ~= 0 then
+                        print(offset..'P( "'..s.char(u.unpack(acc))..'" )')
+                    end
+                    LL_pprint(pt, offset, "")
+                end
+                break
+            elseif pt[1].pkind == "char" then
+                acc[#acc + 1] = pt[1].aux
+            elseif #acc ~= 0 then
+                print(offset..'P( "'..s.char(u.unpack(acc))..'" )')
+                acc = {}
+                LL_pprint(pt[1], offset, "")
+            else
+                LL_pprint(pt[1], offset, "")
+            end
+            pt = pt[2]
+        end
+        ]=],
+    grammar   = [[
+        print(offset..prefix.."Grammar")
+        -- dprint"Printer for Grammar"
+        for k, pt in pairs(pt.aux) do
+            local prefix = ( type(k)~="string"
+                             and tostring(k)
+                             or "\""..k.."\"" )
+            LL_pprint(pt, offset.."  ", prefix .. " = ")
+        end
+    ]]
+} do
+    printers[k] = load(([[
+        local map, LL_pprint, pkind, s, u, flatten = ...
+        return function (pt, offset, prefix)
+            XXXX
+        end
+    ]]):gsub("XXXX", v), k.." printer")(map, LL_pprint, type, s, u, flatten)
+end
+
+-------------------------------------------------------------------------------
+--- Captures patterns
+--
+
+-- for _, cap in pairs{"C", "Cs", "Ct"} do
+-- for _, cap in pairs{"Carg", "Cb", "Cp"} do
+-- function LL_Cc (...)
+-- for _, cap in pairs{"Cf", "Cmt"} do
+-- function LL_Cg (pt, tag)
+-- local valid_slash_type = newset{"string", "number", "table", "function"}
+
+
+for _, cap in pairs{"C", "Cs", "Ct"} do
+    printers[cap] = function (pt, offset, prefix)
+        print(offset..prefix..cap)
+        LL_pprint(pt.pattern, offset.."  ", "")
+    end
+end
+
+for _, cap in pairs{"Cg", "Clb", "Cf", "Cmt", "div_number", "/zero", "div_function", "div_table"} do
+    printers[cap] = function (pt, offset, prefix)
+        print(offset..prefix..cap.." "..tostring(pt.aux or ""))
+        LL_pprint(pt.pattern, offset.."  ", "")
+    end
+end
+
+printers["div_string"] = function (pt, offset, prefix)
+    print(offset..prefix..'/string "'..tostring(pt.aux or "")..'"')
+    LL_pprint(pt.pattern, offset.."  ", "")
+end
+
+for _, cap in pairs{"Carg", "Cp"} do
+    printers[cap] = function (pt, offset, prefix)
+        print(offset..prefix..cap.."( "..tostring(pt.aux).." )")
+    end
+end
+
+printers["Cb"] = function (pt, offset, prefix)
+    print(offset..prefix.."Cb( \""..pt.aux.."\" )")
+end
+
+printers["Cc"] = function (pt, offset, prefix)
+    print(offset..prefix.."Cc(" ..t_concat(map(pt.aux, tostring),", ").." )")
+end
+
+
+-------------------------------------------------------------------------------
+--- Capture objects
+--
+
+local cprinters = {}
+
+local padding = "   "
+local function padnum(n)
+    n = tostring(n)
+    n = n .."."..((" "):rep(4 - #n))
+    return n
+end
+
+local function _cprint(caps, ci, indent, sbj, n)
+    local openclose, kind = caps.openclose, caps.kind
+    indent = indent or 0
+    while kind[ci] and openclose[ci] >= 0 do
+        if caps.openclose[ci] > 0 then 
+            print(t_concat({
+                            padnum(n),
+                            padding:rep(indent),
+                            caps.kind[ci],
+                            ": start = ", tostring(caps.bounds[ci]),
+                            " finish = ", tostring(caps.openclose[ci]),
+                            caps.aux[ci] and " aux = " or "",
+                            caps.aux[ci] and (
+                                type(caps.aux[ci]) == "string" 
+                                    and '"'..tostring(caps.aux[ci])..'"'
+                                or tostring(caps.aux[ci])
+                            ) or "",
+                            " \t", s_sub(sbj, caps.bounds[ci], caps.openclose[ci] - 1)
+                        }))
+            if type(caps.aux[ci]) == "table" then expose(caps.aux[ci]) end
+        else
+            local kind = caps.kind[ci]
+            local start = caps.bounds[ci]
+            print(t_concat({
+                            padnum(n),
+                            padding:rep(indent), kind,
+                            ": start = ", start,
+                            caps.aux[ci] and " aux = " or "",
+                            caps.aux[ci] and (
+                                type(caps.aux[ci]) == "string" 
+                                    and '"'..tostring(caps.aux[ci])..'"'
+                                or tostring(caps.aux[ci])
+                            ) or ""
+                        }))
+            ci, n = _cprint(caps, ci + 1, indent + 1, sbj, n + 1)
+            print(t_concat({
+                            padnum(n),
+                            padding:rep(indent),
+                            "/", kind,
+                            " finish = ", tostring(caps.bounds[ci]),
+                            " \t", s_sub(sbj, start, (caps.bounds[ci] or 1) - 1)
+                        }))
+        end
+        n = n + 1
+        ci = ci + 1
+    end
+
+    return ci, n
+end
+
+function LL.cprint (caps, ci, sbj)
+    ci = ci or 1
+    print"\nCapture Printer:\n================"
+    -- print(capture)
+    -- [[DBG]] expose(caps)
+    _cprint(caps, ci, 0, sbj, 1)
+    print"================\n/Cprinter\n"
+end
+
+
+
+
+return { pprint = LL.pprint,cprint = LL.cprint }
+
+end -- module wrapper ---------------------------------------------------------
+
+
+--                   The Romantic WTF public license.
+--                   --------------------------------
+--                   a.k.a. version "<3" or simply v3
+--
+--
+--            Dear user,
+--
+--            The LuLPeg library
+--
+--                                             \
+--                                              '.,__
+--                                           \  /
+--                                            '/,__
+--                                            /
+--                                           /
+--                                          /
+--                       has been          / released
+--                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
+--                under  the  Romantic   WTF Public License.
+--               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--               I hereby grant you an irrevocable license to
+--                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                  do what the gentle caress you want to
+--                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                           with   this   lovely
+--                              ~ ~ ~ ~ ~ ~ ~ ~
+--                               / thing...
+--                              /  ~ ~ ~ ~
+--                             /    Love,
+--                        #   /      '.'
+--                        #######      ·
+--                        #####
+--                        ###
+--                        #
+--
+--            -- Pierre-Yves
+--
+--
+--            P.S.: Even though I poured my heart into this work,
+--                  I _cannot_ provide any warranty regarding
+--                  its fitness for _any_ purpose. You
+--                  acknowledge that I will not be held liable
+--                  for any damage its use could incur.
+]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
+assert(not sources["util"],"module already exists")sources["util"]=([===[-- <pack util> --
+
+-- A collection of general purpose helpers.
+
+--[[DGB]] local debug = require"debug"
+
+local getmetatable, setmetatable, load, loadstring, next
+    , pairs, pcall, print, rawget, rawset, select, tostring
+    , type, unpack
+    = getmetatable, setmetatable, load, loadstring, next
+    , pairs, pcall, print, rawget, rawset, select, tostring
+    , type, unpack
+
+local m, s, t = require"math", require"string", require"table"
+
+local m_max, s_match, s_gsub, t_concat, t_insert
+    = m.max, s.match, s.gsub, t.concat, t.insert
+
+local compat = require"compat"
+
+
+-- No globals definition:
+
+local
+function nop () end
+
+local noglobals, getglobal, setglobal if pcall and not compat.lua52 and not release then
+    local function errR (_,i)
+        error("illegal global read: " .. tostring(i), 2)
+    end
+    local function errW (_,i, v)
+        error("illegal global write: " .. tostring(i)..": "..tostring(v), 2)
+    end
+    local env = setmetatable({}, { __index=errR, __newindex=errW })
+    noglobals = function()
+        pcall(setfenv, 3, env)
+    end
+    function getglobal(k) rawget(env, k) end
+    function setglobal(k, v) rawset(env, k, v) end
+else
+    noglobals = nop
+end
+
+
+
+local _ENV = noglobals() ------------------------------------------------------
+
+
+
+local util = {
+    nop = nop,
+    noglobals = noglobals,
+    getglobal = getglobal,
+    setglobal = setglobal
+}
+
+util.unpack = t.unpack or unpack
+util.pack = t.pack or function(...) return { n = select('#', ...), ... } end
+
+
+if compat.lua51 then
+    local old_load = load
+
+   function util.load (ld, source, mode, env)
+     -- We ignore mode. Both source and bytecode can be loaded.
+     local fun
+     if type (ld) == 'string' then
+       fun = loadstring (ld)
+     else
+       fun = old_load (ld, source)
+     end
+     if env then
+       setfenv (fun, env)
+     end
+     return fun
+   end
+else
+    util.load = load
+end
+
+if compat.luajit and compat.jit then
+    function util.max (ary)
+        local max = 0
+        for i = 1, #ary do
+            max = m_max(max,ary[i])
+        end
+        return max
+    end
+elseif compat.luajit then
+    local t_unpack = util.unpack
+    function util.max (ary)
+     local len = #ary
+        if len <=30 or len > 10240 then
+            local max = 0
+            for i = 1, #ary do
+                local j = ary[i]
+                if j > max then max = j end
+            end
+            return max
+        else
+            return m_max(t_unpack(ary))
+        end
+    end
+else
+    local t_unpack = util.unpack
+    local safe_len = 1000
+    function util.max(array)
+        -- Thanks to Robert G. Jakabosky for this implementation.
+        local len = #array
+        if len == 0 then return -1 end -- FIXME: shouldn't this be `return -1`?
+        local off = 1
+        local off_end = safe_len
+        local max = array[1] -- seed max.
+        repeat
+            if off_end > len then off_end = len end
+            local seg_max = m_max(t_unpack(array, off, off_end))
+            if seg_max > max then
+                max = seg_max
+            end
+            off = off + safe_len
+            off_end = off_end + safe_len
+        until off >= len
+        return max
+    end
+end
+
+
+local
+function setmode(t,mode)
+    local mt = getmetatable(t) or {}
+    if mt.__mode then
+        error("The mode has already been set on table "..tostring(t)..".")
+    end
+    mt.__mode = mode
+    return setmetatable(t, mt)
+end
+
+util.setmode = setmode
+
+function util.weakboth (t)
+    return setmode(t,"kv")
+end
+
+function util.weakkey (t)
+    return setmode(t,"k")
+end
+
+function util.weakval (t)
+    return setmode(t,"v")
+end
+
+function util.strip_mt (t)
+    return setmetatable(t, nil)
+end
+
+local getuniqueid
+do
+    local N, index = 0, {}
+    function getuniqueid(v)
+        if not index[v] then
+            N = N + 1
+            index[v] = N
+        end
+        return index[v]
+    end
+end
+util.getuniqueid = getuniqueid
+
+do
+    local counter = 0
+    function util.gensym ()
+        counter = counter + 1
+        return "___SYM_"..counter
+    end
+end
+
+function util.passprint (...) print(...) return ... end
+
+local val_to_str_, key_to_str, table_tostring, cdata_to_str, t_cache
+local multiplier = 2
+
+local
+function val_to_string (v, indent)
+    indent = indent or 0
+    t_cache = {} -- upvalue.
+    local acc = {}
+    val_to_str_(v, acc, indent, indent)
+    local res = t_concat(acc, "")
+    return res
+end
+util.val_to_str = val_to_string
+
+function val_to_str_ ( v, acc, indent, str_indent )
+    str_indent = str_indent or 1
+    if "string" == type( v ) then
+        v = s_gsub( v, "\n",  "\n" .. (" "):rep( indent * multiplier + str_indent ) )
+        if s_match( s_gsub( v,"[^'\"]",""), '^"+$' ) then
+            acc[#acc+1] = t_concat{ "'", "", v, "'" }
+        else
+            acc[#acc+1] = t_concat{'"', s_gsub(v,'"', '\\"' ), '"' }
+        end
+    elseif "cdata" == type( v ) then
+            cdata_to_str( v, acc, indent )
+    elseif "table" == type(v) then
+        if t_cache[v] then
+            acc[#acc+1] = t_cache[v]
+        else
+            t_cache[v] = tostring( v )
+            table_tostring( v, acc, indent )
+        end
+    else
+        acc[#acc+1] = tostring( v )
+    end
+end
+
+function key_to_str ( k, acc, indent )
+    if "string" == type( k ) and s_match( k, "^[_%a][_%a%d]*$" ) then
+        acc[#acc+1] = s_gsub( k, "\n", (" "):rep( indent * multiplier + 1 ) .. "\n" )
+    else
+        acc[#acc+1] = "[ "
+        val_to_str_( k, acc, indent )
+        acc[#acc+1] = " ]"
+    end
+end
+
+function cdata_to_str(v, acc, indent)
+    acc[#acc+1] = ( " " ):rep( indent * multiplier )
+    acc[#acc+1] = "["
+    print(#acc)
+    for i = 0, #v do
+        if i % 16 == 0 and i ~= 0 then
+            acc[#acc+1] = "\n"
+            acc[#acc+1] = (" "):rep(indent * multiplier + 2)
+        end
+        acc[#acc+1] = v[i] and 1 or 0
+        acc[#acc+1] = i ~= #v and  ", " or ""
+    end
+    print(#acc, acc[1], acc[2])
+    acc[#acc+1] = "]"
+end
+
+function table_tostring ( tbl, acc, indent )
+    -- acc[#acc+1] = ( " " ):rep( indent * multiplier )
+    acc[#acc+1] = t_cache[tbl]
+    acc[#acc+1] = "{\n"
+    for k, v in pairs( tbl ) do
+        local str_indent = 1
+        acc[#acc+1] = (" "):rep((indent + 1) * multiplier)
+        key_to_str( k, acc, indent + 1)
+
+        if acc[#acc] == " ]"
+        and acc[#acc - 2] == "[ "
+        then str_indent = 8 + #acc[#acc - 1]
+        end
+
+        acc[#acc+1] = " = "
+        val_to_str_( v, acc, indent + 1, str_indent)
+        acc[#acc+1] = "\n"
+    end
+    acc[#acc+1] = ( " " ):rep( indent * multiplier )
+    acc[#acc+1] = "}"
+end
+
+function util.expose(v) print(val_to_string(v)) return v end
+-------------------------------------------------------------------------------
+--- Functional helpers
+--
+
+function util.map (ary, func, ...)
+    if type(ary) == "function" then ary, func = func, ary end
+    local res = {}
+    for i = 1,#ary do
+        res[i] = func(ary[i], ...)
+    end
+    return res
+end
+
+function util.selfmap (ary, func, ...)
+    if type(ary) == "function" then ary, func = func, ary end
+    for i = 1,#ary do
+        ary[i] = func(ary[i], ...)
+    end
+    return ary
+end
+
+local
+function map_all (tbl, func, ...)
+    if type(tbl) == "function" then tbl, func = func, tbl end
+    local res = {}
+    for k, v in next, tbl do
+        res[k]=func(v, ...)
+    end
+    return res
+end
+
+util.map_all = map_all
+
+local
+function fold (ary, func, acc)
+    local i0 = 1
+    if not acc then
+        acc = ary[1]
+        i0 = 2
+    end
+    for i = i0, #ary do
+        acc = func(acc,ary[i])
+    end
+    return acc
+end
+util.fold = fold
+
+local
+function foldr (ary, func, acc)
+    local offset = 0
+    if not acc then
+        acc = ary[#ary]
+        offset = 1
+    end
+    for i = #ary - offset, 1 , -1 do
+        acc = func(ary[i], acc)
+    end
+    return acc
+end
+util.foldr = foldr
+
+local
+function map_fold(ary, mfunc, ffunc, acc)
+    local i0 = 1
+    if not acc then
+        acc = mfunc(ary[1])
+        i0 = 2
+    end
+    for i = i0, #ary do
+        acc = ffunc(acc,mfunc(ary[i]))
+    end
+    return acc
+end
+util.map_fold = map_fold
+
+local
+function map_foldr(ary, mfunc, ffunc, acc)
+    local offset = 0
+    if not acc then
+        acc = mfunc(ary[#acc])
+        offset = 1
+    end
+    for i = #ary - offset, 1 , -1 do
+        acc = ffunc(mfunc(ary[i], acc))
+    end
+    return acc
+end
+util.map_foldr = map_fold
+
+function util.zip(a1, a2)
+    local res, len = {}, m_max(#a1,#a2)
+    for i = 1,len do
+        res[i] = {a1[i], a2[i]}
+    end
+    return res
+end
+
+function util.zip_all(t1, t2)
+    local res = {}
+    for k,v in pairs(t1) do
+        res[k] = {v, t2[k]}
+    end
+    for k,v in pairs(t2) do
+        if res[k] == nil then
+            res[k] = {t1[k], v}
+        end
+    end
+    return res
+end
+
+function util.filter(ary,func)
+    local res = {}
+    for i = 1,#ary do
+        if func(ary[i]) then
+            t_insert(res, ary[i])
+        end
+    end
+
+end
+
+local
+function id (...) return ... end
+util.id = id
+
+
+
+local function AND (a,b) return a and b end
+local function OR  (a,b) return a or b  end
+
+function util.copy (tbl) return map_all(tbl, id) end
+
+function util.all (ary, mfunc)
+    if mfunc then
+        return map_fold(ary, mfunc, AND)
+    else
+        return fold(ary, AND)
+    end
+end
+
+function util.any (ary, mfunc)
+    if mfunc then
+        return map_fold(ary, mfunc, OR)
+    else
+        return fold(ary, OR)
+    end
+end
+
+function util.get(field)
+    return function(tbl) return tbl[field] end
+end
+
+function util.lt(ref)
+    return function(val) return val < ref end
+end
+
+-- function util.lte(ref)
+--     return function(val) return val <= ref end
+-- end
+
+-- function util.gt(ref)
+--     return function(val) return val > ref end
+-- end
+
+-- function util.gte(ref)
+--     return function(val) return val >= ref end
+-- end
+
+function util.compose(f,g)
+    return function(...) return f(g(...)) end
+end
+
+function util.extend (destination, ...)
+    for i = 1, select('#', ...) do
+        for k,v in pairs((select(i, ...))) do
+            destination[k] = v
+        end
+    end
+    return destination
+end
+
+function util.setify (t)
+    local set = {}
+    for i = 1, #t do
+        set[t[i]]=true
+    end
+    return set
+end
+
+function util.arrayify (...) return {...} end
+
+
+local
+function _checkstrhelper(s)
+    return s..""
+end
+
+function util.checkstring(s, func)
+    local success, str = pcall(_checkstrhelper, s)
+    if not success then 
+        if func == nil then func = "?" end
+        error("bad argument to '"
+            ..tostring(func)
+            .."' (string expected, got "
+            ..type(s)
+            ..")",
+        2)
+    end
+    return str
+end
+
+
+
+return util
+
+--                   The Romantic WTF public license.
+--                   --------------------------------
+--                   a.k.a. version "<3" or simply v3
+--
+--
+--            Dear user,
+--
+--            The PureLPeg library
+--
+--                                             \
+--                                              '.,__
+--                                           \  /
+--                                            '/,__
+--                                            /
+--                                           /
+--                                          /
+--                       has been          / released
+--                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
+--                under  the  Romantic   WTF Public License.
+--               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--               I hereby grant you an irrevocable license to
+--                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                  do what the gentle caress you want to
+--                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                           with   this   lovely
+--                              ~ ~ ~ ~ ~ ~ ~ ~
+--                               / thing...
+--                              /  ~ ~ ~ ~
+--                             /    Love,
+--                        #   /      '.'
+--                        #######      ·
+--                        #####
+--                        ###
+--                        #
+--
+--            -- Pierre-Yves
+--
+--
+--            P.S.: Even though I poured my heart into this work,
+--                  I _cannot_ provide any warranty regarding
+--                  its fitness for _any_ purpose. You
+--                  acknowledge that I will not be held liable
+--                  for any damage its use could incur.
+]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
+assert(not sources["match"],"module already exists")sources["match"]=([===[-- <pack match> --
+
+]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
+assert(not sources["charsets"],"module already exists")sources["charsets"]=([===[-- <pack charsets> --
+
+-- Charset handling
+
+
+-- FIXME:
+-- Currently, only
+-- * `binary_get_int()`,
+-- * `binary_split_int()` and
+-- * `binary_validate()`
+-- are effectively used by the client code.
+
+-- *_next_int, *_split_, *_get_ and *_next_char should probably be disposed of.
+
+
+
+-- We provide:
+-- * utf8_validate(subject, start, finish) -- validator
+-- * utf8_split_int(subject)               --> table{int}
+-- * utf8_split_char(subject)              --> table{char}
+-- * utf8_next_int(subject, index)         -- iterator
+-- * utf8_next_char(subject, index)        -- iterator
+-- * utf8_get_int(subject, index)          -- Julia-style iterator
+--                                            returns int, next_index
+-- * utf8_get_char(subject, index)         -- Julia-style iterator
+--                                            returns char, next_index
+--
+-- See each function for usage.
+
+
+local s, t, u = require"string", require"table", require"util"
+
+
+
+local _ENV = u.noglobals() ----------------------------------------------------
+
+
+
+local copy = u.copy
+
+local s_char, s_sub, s_byte, t_concat, t_insert
+    = s.char, s.sub, s.byte, t.concat, t.insert
+
+-------------------------------------------------------------------------------
+--- UTF-8
+--
+
+-- Utility function.
+-- Modified from code by Kein Hong Man <khman@users.sf.net>,
+-- found at http://lua-users.org/wiki/SciteUsingUnicode.
+
+local
+function utf8_offset (byte)
+    if byte < 128 then return 0, byte
+    elseif byte < 192 then
+        error("Byte values between 0x80 to 0xBF cannot start a multibyte sequence")
+    elseif byte < 224 then return 1, byte - 192
+    elseif byte < 240 then return 2, byte - 224
+    elseif byte < 248 then return 3, byte - 240
+    elseif byte < 252 then return 4, byte - 248
+    elseif byte < 254 then return 5, byte - 252
+    else
+        error("Byte values between 0xFE and OxFF cannot start a multibyte sequence")
+    end
+end
+
+
+-- validate a given (sub)string.
+-- returns two values:
+-- * The first is either true, false or nil, respectively on success, error, or
+--   incomplete subject.
+-- * The second is the index of the last byte of the last valid char.
+local
+function utf8_validate (subject, start, finish)
+    start = start or 1
+    finish = finish or #subject
+
+    local offset, char
+        = 0
+    for i = start,finish do
+        local b = s_byte(subject,i)
+        if offset == 0 then
+            char = i
+            success, offset = pcall(utf8_offset, b)
+            if not success then return false, char - 1 end
+        else
+            if not (127 < b and b < 192) then
+                return false, char - 1
+            end
+            offset = offset -1
+        end
+    end
+    if offset ~= 0 then return nil, char - 1 end -- Incomplete input.
+    return true, finish
+end
+
+-- Usage:
+--     for finish, start, cpt in utf8_next_int, "˙†ƒ˙©√" do
+--         print(cpt)
+--     end
+-- `start` and `finish` being the bounds of the character, and `cpt` being the UTF-8 code point.
+-- It produces:
+--     729
+--     8224
+--     402
+--     729
+--     169
+--     8730
+local
+function utf8_next_int (subject, i)
+    i = i and i+1 or 1
+    if i > #subject then return end
+    local c = s_byte(subject, i)
+    local offset, val = utf8_offset(c)
+    for i = i+1, i+offset do
+        c = s_byte(subject, i)
+        val = val * 64 + (c-128)
+    end
+  return i + offset, i, val
+end
+
+
+-- Usage:
+--     for finish, start, cpt in utf8_next_char, "˙†ƒ˙©√" do
+--         print(cpt)
+--     end
+-- `start` and `finish` being the bounds of the character, and `cpt` being the UTF-8 code point.
+-- It produces:
+--     ˙
+--     †
+--     ƒ
+--     ˙
+--     ©
+--     √
+local
+function utf8_next_char (subject, i)
+    i = i and i+1 or 1
+    if i > #subject then return end
+    local offset = utf8_offset(s_byte(subject,i))
+    return i + offset, i, s_sub(subject, i, i + offset)
+end
+
+
+-- Takes a string, returns an array of code points.
+local
+function utf8_split_int (subject)
+    local chars = {}
+    for _, _, c in utf8_next_int, subject do
+        t_insert(chars,c)
+    end
+    return chars
+end
+
+-- Takes a string, returns an array of characters.
+local
+function utf8_split_char (subject)
+    local chars = {}
+    for _, _, c in utf8_next_char, subject do
+        t_insert(chars,c)
+    end
+    return chars
+end
+
+local
+function utf8_get_int(subject, i)
+    if i > #subject then return end
+    local c = s_byte(subject, i)
+    local offset, val = utf8_offset(c)
+    for i = i+1, i+offset do
+        c = s_byte(subject, i)
+        val = val * 64 + ( c - 128 )
+    end
+    return val, i + offset + 1
+end
+
+local
+function split_generator (get)
+    if not get then return end
+    return function(subject)
+        local res = {}
+        local o, i = true
+        while o do
+            o,i = get(subject, i)
+            res[#res] = o
+        end
+        return res
+    end
+end
+
+local
+function merge_generator (char)
+    if not char then return end
+    return function(ary)
+        local res = {}
+        for i = 1, #ary do
+            t_insert(res,char(ary[i]))
+        end
+        return t_concat(res)
+    end
+end
+
+
+local
+function utf8_get_int2 (subject, i)
+    local byte, b5, b4, b3, b2, b1 = s_byte(subject, i)
+    if byte < 128 then return byte, i + 1
+    elseif byte < 192 then
+        error("Byte values between 0x80 to 0xBF cannot start a multibyte sequence")
+    elseif byte < 224 then
+        return (byte - 192)*64 + s_byte(subject, i+1), i+2
+    elseif byte < 240 then
+            b2, b1 = s_byte(subject, i+1, i+2)
+        return (byte-224)*4096 + b2%64*64 + b1%64, i+3
+    elseif byte < 248 then
+        b3, b2, b1 = s_byte(subject, i+1, i+2, 1+3)
+        return (byte-240)*262144 + b3%64*4096 + b2%64*64 + b1%64, i+4
+    elseif byte < 252 then
+        b4, b3, b2, b1 = s_byte(subject, i+1, i+2, 1+3, i+4)
+        return (byte-248)*16777216 + b4%64*262144 + b3%64*4096 + b2%64*64 + b1%64, i+5
+    elseif byte < 254 then
+        b5, b4, b3, b2, b1 = s_byte(subject, i+1, i+2, 1+3, i+4, i+5)
+        return (byte-252)*1073741824 + b5%64*16777216 + b4%64*262144 + b3%64*4096 + b2%64*64 + b1%64, i+6
+    else
+        error("Byte values between 0xFE and OxFF cannot start a multibyte sequence")
+    end
+end
+
+
+local
+function utf8_get_char(subject, i)
+    if i > #subject then return end
+    local offset = utf8_offset(s_byte(subject,i))
+    return s_sub(subject, i, i + offset), i + offset + 1
+end
+
+local
+function utf8_char(c)
+    if     c < 128 then
+        return                                                                               s_char(c)
+    elseif c < 2048 then
+        return                                                          s_char(192 + c/64, 128 + c%64)
+    elseif c < 55296 or 57343 < c and c < 65536 then
+        return                                         s_char(224 + c/4096, 128 + c/64%64, 128 + c%64)
+    elseif c < 2097152 then
+        return                      s_char(240 + c/262144, 128 + c/4096%64, 128 + c/64%64, 128 + c%64)
+    elseif c < 67108864 then
+        return s_char(248 + c/16777216, 128 + c/262144%64, 128 + c/4096%64, 128 + c/64%64, 128 + c%64)
+    elseif c < 2147483648 then
+        return s_char( 252 + c/1073741824,
+                   128 + c/16777216%64, 128 + c/262144%64, 128 + c/4096%64, 128 + c/64%64, 128 + c%64)
+    end
+    error("Bad Unicode code point: "..c..".")
+end
+
+-------------------------------------------------------------------------------
+--- ASCII and binary.
+--
+
+-- See UTF-8 above for the API docs.
+
+local
+function binary_validate (subject, start, finish)
+    start = start or 1
+    finish = finish or #subject
+    return true, finish
+end
+
+local
+function binary_next_int (subject, i)
+    i = i and i+1 or 1
+    if i >= #subject then return end
+    return i, i, s_sub(subject, i, i)
+end
+
+local
+function binary_next_char (subject, i)
+    i = i and i+1 or 1
+    if i > #subject then return end
+    return i, i, s_byte(subject,i)
+end
+
+local
+function binary_split_int (subject)
+    local chars = {}
+    for i = 1, #subject do
+        t_insert(chars, s_byte(subject,i))
+    end
+    return chars
+end
+
+local
+function binary_split_char (subject)
+    local chars = {}
+    for i = 1, #subject do
+        t_insert(chars, s_sub(subject,i,i))
+    end
+    return chars
+end
+
+local
+function binary_get_int(subject, i)
+    return s_byte(subject, i), i + 1
+end
+
+local
+function binary_get_char(subject, i)
+    return s_sub(subject, i, i), i + 1
+end
+
+
+-------------------------------------------------------------------------------
+--- The table
+--
+
+local charsets = {
+    binary = {
+        name = "binary",
+        binary = true,
+        validate   = binary_validate,
+        split_char = binary_split_char,
+        split_int  = binary_split_int,
+        next_char  = binary_next_char,
+        next_int   = binary_next_int,
+        get_char   = binary_get_char,
+        get_int    = binary_get_int,
+        tochar    = s_char
+    },
+    ["UTF-8"] = {
+        name = "UTF-8",
+        validate   = utf8_validate,
+        split_char = utf8_split_char,
+        split_int  = utf8_split_int,
+        next_char  = utf8_next_char,
+        next_int   = utf8_next_int,
+        get_char   = utf8_get_char,
+        get_int    = utf8_get_int
+    }
+}
+
+return function (Builder)
+    local cs = Builder.options.charset or "binary"
+    if charsets[cs] then
+        Builder.charset = copy(charsets[cs])
+        Builder.binary_split_int = binary_split_int
+    else
+        error("NYI: custom charsets")
+    end
+end
+
+
+--                   The Romantic WTF public license.
+--                   --------------------------------
+--                   a.k.a. version "<3" or simply v3
+--
+--
+--            Dear user,
+--
+--            The LuLPeg library
+--
+--                                             \
+--                                              '.,__
+--                                           \  /
+--                                            '/,__
+--                                            /
+--                                           /
+--                                          /
+--                       has been          / released
+--                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
+--                under  the  Romantic   WTF Public License.
+--               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--               I hereby grant you an irrevocable license to
+--                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                  do what the gentle caress you want to
+--                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                           with   this   lovely
+--                              ~ ~ ~ ~ ~ ~ ~ ~
+--                               / thing...
+--                              /  ~ ~ ~ ~
+--                             /    Love,
+--                        #   /      '.'
+--                        #######      ·
+--                        #####
+--                        ###
+--                        #
+--
+--            -- Pierre-Yves
+--
+--
+--            P.S.: Even though I poured my heart into this work,
+--                  I _cannot_ provide any warranty regarding
+--                  its fitness for _any_ purpose. You
+--                  acknowledge that I will not be held liable
+--                  for any damage its use could incur.
+]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
 assert(not sources["API"],"module already exists")sources["API"]=([===[-- <pack API> --
 
 -- API.lua
@@ -1303,6 +2857,484 @@ factorizer.choice, factorizer.lookahead, factorizer.sequence, factorizer.unm
 
 end -- module wrapper --------------------------------------------------------
 
+
+--                   The Romantic WTF public license.
+--                   --------------------------------
+--                   a.k.a. version "<3" or simply v3
+--
+--
+--            Dear user,
+--
+--            The LuLPeg library
+--
+--                                             \
+--                                              '.,__
+--                                           \  /
+--                                            '/,__
+--                                            /
+--                                           /
+--                                          /
+--                       has been          / released
+--                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
+--                under  the  Romantic   WTF Public License.
+--               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--               I hereby grant you an irrevocable license to
+--                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                  do what the gentle caress you want to
+--                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                           with   this   lovely
+--                              ~ ~ ~ ~ ~ ~ ~ ~
+--                               / thing...
+--                              /  ~ ~ ~ ~
+--                             /    Love,
+--                        #   /      '.'
+--                        #######      ·
+--                        #####
+--                        ###
+--                        #
+--
+--            -- Pierre-Yves
+--
+--
+--            P.S.: Even though I poured my heart into this work,
+--                  I _cannot_ provide any warranty regarding
+--                  its fitness for _any_ purpose. You
+--                  acknowledge that I will not be held liable
+--                  for any damage its use could incur.
+]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
+assert(not sources["compat"],"module already exists")sources["compat"]=([===[-- <pack compat> --
+
+-- compat.lua
+
+local _, debug, jit
+
+_, debug = pcall(require, "debug")
+
+_, jit = pcall(require, "jit")
+jit = _ and jit
+
+local compat = {
+    debug = debug,
+
+    lua51 = (_VERSION == "Lua 5.1") and not jit,
+    lua52 = _VERSION == "Lua 5.2",
+    luajit = jit and true or false,
+    jit = jit and jit.status(),
+
+    -- LuaJIT can optionally support __len on tables.
+    lua52_len = not #setmetatable({},{__len = function()end}),
+
+    proxies = pcall(function()
+        local prox = newproxy(true)
+        local prox2 = newproxy(prox)
+        assert (type(getmetatable(prox)) == "table" 
+                and (getmetatable(prox)) == (getmetatable(prox2)))
+    end),
+    _goto = not not(loadstring or load)"::R::"
+}
+
+
+return compat
+
+--                   The Romantic WTF public license.
+--                   --------------------------------
+--                   a.k.a. version "<3" or simply v3
+--
+--
+--            Dear user,
+--
+--            The LuLPeg library
+--
+--                                             \
+--                                              '.,__
+--                                           \  /
+--                                            '/,__
+--                                            /
+--                                           /
+--                                          /
+--                       has been          / released
+--                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
+--                under  the  Romantic   WTF Public License.
+--               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--               I hereby grant you an irrevocable license to
+--                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                  do what the gentle caress you want to
+--                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                           with   this   lovely
+--                              ~ ~ ~ ~ ~ ~ ~ ~
+--                               / thing...
+--                              /  ~ ~ ~ ~
+--                             /    Love,
+--                        #   /      '.'
+--                        #######      ·
+--                        #####
+--                        ###
+--                        #
+--
+--            -- Pierre-Yves
+--
+--
+--            P.S.: Even though I poured my heart into this work,
+--                  I _cannot_ provide any warranty regarding
+--                  its fitness for _any_ purpose. You
+--                  acknowledge that I will not be held liable
+--                  for any damage its use could incur.
+]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
+assert(not sources["locale"],"module already exists")sources["locale"]=([===[-- <pack locale> --
+
+-- Locale definition.
+
+local extend = require"util".extend
+
+
+
+local _ENV = require"util".noglobals() ----------------------------------------
+
+
+
+-- We'll limit ourselves to the standard C locale for now.
+-- see http://wayback.archive.org/web/20120310215042/http://www.utas.edu.au...
+-- .../infosys/info/documentation/C/CStdLib.html#ctype.h
+
+return function(Builder, LL) -- Module wrapper {-------------------------------
+
+local R, S = LL.R, LL.S
+
+local locale = {}
+locale["cntrl"] = R"\0\31" + "\127"
+locale["digit"] = R"09"
+locale["lower"] = R"az"
+locale["print"] = R" ~" -- 0x20 to 0xee
+locale["space"] = S" \f\n\r\t\v" -- \f == form feed (for a printer), \v == vtab
+locale["upper"] = R"AZ"
+
+locale["alpha"]  = locale["lower"] + locale["upper"]
+locale["alnum"]  = locale["alpha"] + locale["digit"]
+locale["graph"]  = locale["print"] - locale["space"]
+locale["punct"]  = locale["graph"] - locale["alnum"]
+locale["xdigit"] = locale["digit"] + R"af" + R"AF"
+
+
+function LL.locale (t)
+    return extend(t or {}, locale)
+end
+
+end -- Module wrapper --------------------------------------------------------}
+
+
+--                   The Romantic WTF public license.
+--                   --------------------------------
+--                   a.k.a. version "<3" or simply v3
+--
+--
+--            Dear user,
+--
+--            The LuLPeg library
+--
+--                                             \
+--                                              '.,__
+--                                           \  /
+--                                            '/,__
+--                                            /
+--                                           /
+--                                          /
+--                       has been          / released
+--                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
+--                under  the  Romantic   WTF Public License.
+--               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--               I hereby grant you an irrevocable license to
+--                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                  do what the gentle caress you want to
+--                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
+--                           with   this   lovely
+--                              ~ ~ ~ ~ ~ ~ ~ ~
+--                               / thing...
+--                              /  ~ ~ ~ ~
+--                             /    Love,
+--                        #   /      '.'
+--                        #######      ·
+--                        #####
+--                        ###
+--                        #
+--
+--            -- Pierre-Yves
+--
+--
+--            P.S.: Even though I poured my heart into this work,
+--                  I _cannot_ provide any warranty regarding
+--                  its fitness for _any_ purpose. You
+--                  acknowledge that I will not be held liable
+--                  for any damage its use could incur.
+]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
+assert(not sources["constructors"],"module already exists")sources["constructors"]=([===[-- <pack constructors> --
+
+-- Constructors
+
+-- Patterns have the following, optional fields:
+--
+-- - type: the pattern type. ~1 to 1 correspondance with the pattern constructors
+--     described in the LPeg documentation.
+-- - pattern: the one subpattern held by the pattern, like most captures, or
+--     `#pt`, `-pt` and `pt^n`.
+-- - aux: any other type of data associated to the pattern. Like the string of a
+--     `P"string"`, the range of an `R`, or the list of subpatterns of a `+` or
+--     `*` pattern. In some cases, the data is pre-processed. in that case,
+--     the `as_is` field holds the data as passed to the constructor.
+-- - as_is: see aux.
+-- - meta: A table holding meta information about patterns, like their
+--     minimal and maximal width, the form they can take when compiled,
+--     whether they are terminal or not (no V patterns), and so on.
+
+
+local getmetatable, ipairs, newproxy, print, setmetatable
+    = getmetatable, ipairs, newproxy, print, setmetatable
+
+local t, u, compat
+    = require"table", require"util", require"compat"
+
+--[[DBG]] local debug = require"debug"
+
+local t_concat = t.concat
+
+local   copy,   getuniqueid,   id,   map
+    ,   weakkey,   weakval
+    = u.copy, u.getuniqueid, u.id, u.map
+    , u.weakkey, u.weakval
+
+
+
+local _ENV = u.noglobals() ----------------------------------------------------
+
+
+
+--- The type of cache for each kind of pattern:
+--
+-- Patterns are memoized using different strategies, depending on what kind of
+-- data is associated with them.
+
+
+local patternwith = {
+    constant = {
+        "Cp", "true", "false"
+    },
+    -- only aux
+    aux = {
+        "string", "any",
+        "char", "range", "set",
+        "ref", "sequence", "choice",
+        "Carg", "Cb"
+    },
+    -- only sub pattern
+    subpt = {
+        "unm", "lookahead", "C", "Cf",
+        "Cg", "Cs", "Ct", "/zero"
+    },
+    -- both
+    both = {
+        "behind", "at least", "at most", "Clb", "Cmt",
+        "div_string", "div_number", "div_table", "div_function"
+    },
+    none = "grammar", "Cc"
+}
+
+
+
+-------------------------------------------------------------------------------
+return function(Builder, LL) --- module wrapper.
+--
+
+
+local S_tostring = Builder.set.tostring
+
+
+-------------------------------------------------------------------------------
+--- Base pattern constructor
+--
+
+local newpattern, pattmt
+-- This deals with the Lua 5.1/5.2 compatibility, and restricted
+-- environements without access to newproxy and/or debug.setmetatable.
+
+if compat.proxies and not compat.lua52_len then 
+    -- Lua 5.1 / LuaJIT without compat.
+    local proxycache = weakkey{}
+    local __index_LL = {__index = LL}
+
+    local baseproxy = newproxy(true)
+    pattmt = getmetatable(baseproxy)
+    Builder.proxymt = pattmt
+
+    function pattmt:__index(k)
+        return proxycache[self][k]
+    end
+
+    function pattmt:__newindex(k, v)
+        proxycache[self][k] = v
+    end
+
+    function LL.getdirect(p) return proxycache[p] end
+
+    function newpattern(cons)
+        local pt = newproxy(baseproxy)
+        setmetatable(cons, __index_LL)
+        proxycache[pt]=cons
+        return pt
+    end
+else
+    -- Fallback if neither __len(table) nor newproxy work
+    -- for example in restricted sandboxes.
+    if LL.warnings and not compat.lua52_len then
+        print("Warning: The `__len` metatethod won't work with patterns, "
+            .."use `LL.L(pattern)` for lookaheads.")
+    end
+    pattmt = LL
+    function LL.getdirect (p) return p end
+
+    function newpattern(pt)
+        return setmetatable(pt,LL)
+    end
+end
+
+Builder.newpattern = newpattern
+
+local
+function LL_ispattern(pt) return getmetatable(pt) == pattmt end
+LL.ispattern = LL_ispattern
+
+function LL.type(pt)
+    if LL_ispattern(pt) then
+        return "pattern"
+    else
+        return nil
+    end
+end
+
+
+-------------------------------------------------------------------------------
+--- The caches
+--
+
+local ptcache, meta
+local
+function resetcache()
+    ptcache, meta = {}, weakkey{}
+    Builder.ptcache = ptcache
+    -- Patterns with aux only.
+    for _, p in ipairs(patternwith.aux) do
+        ptcache[p] = weakval{}
+    end
+
+    -- Patterns with only one sub-pattern.
+    for _, p in ipairs(patternwith.subpt) do
+        ptcache[p] = weakval{}
+    end
+
+    -- Patterns with both
+    for _, p in ipairs(patternwith.both) do
+        ptcache[p] = {}
+    end
+
+    return ptcache
+end
+LL.resetptcache = resetcache
+
+resetcache()
+
+
+-------------------------------------------------------------------------------
+--- Individual pattern constructor
+--
+
+local constructors = {}
+Builder.constructors = constructors
+
+constructors["constant"] = {
+    truept  = newpattern{ pkind = "true" },
+    falsept = newpattern{ pkind = "false" },
+    Cppt    = newpattern{ pkind = "Cp" }
+}
+
+-- data manglers that produce cache keys for each aux type.
+-- `id()` for unspecified cases.
+local getauxkey = {
+    string = function(aux, as_is) return as_is end,
+    table = copy,
+    set = function(aux, as_is)
+        return S_tostring(aux)
+    end,
+    range = function(aux, as_is)
+        return t_concat(as_is, "|")
+    end,
+    sequence = function(aux, as_is)
+        return t_concat(map(getuniqueid, aux),"|")
+    end
+}
+
+getauxkey.choice = getauxkey.sequence
+
+constructors["aux"] = function(typ, aux, as_is)
+     -- dprint("CONS: ", typ, pt, aux, as_is)
+    local cache = ptcache[typ]
+    local key = (getauxkey[typ] or id)(aux, as_is)
+    if not cache[key] then
+        cache[key] = newpattern{
+            pkind = typ,
+            aux = aux,
+            as_is = as_is
+        }
+    end
+    return cache[key]
+end
+
+-- no cache for grammars
+constructors["none"] = function(typ, aux)
+    -- [[DBG]] print("CONS: ", typ, _, aux)
+    -- [[DBG]] print(debug.traceback(1))
+    return newpattern{
+        pkind = typ,
+        aux = aux
+    }
+end
+
+constructors["subpt"] = function(typ, pt)
+    -- [[DP]]print("CONS: ", typ, pt, aux)
+    local cache = ptcache[typ]
+    if not cache[pt] then
+        cache[pt] = newpattern{
+            pkind = typ,
+            pattern = pt
+        }
+    end
+    return cache[pt]
+end
+
+constructors["both"] = function(typ, pt, aux)
+    -- [[DBG]] print("CONS: ", typ, pt, aux)
+    local cache = ptcache[typ][aux]
+    if not cache then
+        ptcache[typ][aux] = weakval{}
+        cache = ptcache[typ][aux]
+    end
+    if not cache[pt] then
+        cache[pt] = newpattern{
+            pkind = typ,
+            pattern = pt,
+            aux = aux,
+            cache = cache -- needed to keep the cache as long as the pattern exists.
+        }
+    end
+    return cache[pt]
+end
+
+constructors["binary"] = function(typ, a, b)
+    -- [[DBG]] print("CONS: ", typ, pt, aux)
+    return newpattern{
+        a, b;
+        pkind = typ,
+    }
+end
+
+end -- module wrapper
 
 --                   The Romantic WTF public license.
 --                   --------------------------------
@@ -2185,1952 +4217,6 @@ end
 --                  acknowledge that I will not be held liable
 --                  for any damage its use could incur.
 ]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
-assert(not sources["constructors"],"module already exists")sources["constructors"]=([===[-- <pack constructors> --
-
--- Constructors
-
--- Patterns have the following, optional fields:
---
--- - type: the pattern type. ~1 to 1 correspondance with the pattern constructors
---     described in the LPeg documentation.
--- - pattern: the one subpattern held by the pattern, like most captures, or
---     `#pt`, `-pt` and `pt^n`.
--- - aux: any other type of data associated to the pattern. Like the string of a
---     `P"string"`, the range of an `R`, or the list of subpatterns of a `+` or
---     `*` pattern. In some cases, the data is pre-processed. in that case,
---     the `as_is` field holds the data as passed to the constructor.
--- - as_is: see aux.
--- - meta: A table holding meta information about patterns, like their
---     minimal and maximal width, the form they can take when compiled,
---     whether they are terminal or not (no V patterns), and so on.
-
-
-local getmetatable, ipairs, newproxy, print, setmetatable
-    = getmetatable, ipairs, newproxy, print, setmetatable
-
-local t, u, compat
-    = require"table", require"util", require"compat"
-
---[[DBG]] local debug = require"debug"
-
-local t_concat = t.concat
-
-local   copy,   getuniqueid,   id,   map
-    ,   weakkey,   weakval
-    = u.copy, u.getuniqueid, u.id, u.map
-    , u.weakkey, u.weakval
-
-
-
-local _ENV = u.noglobals() ----------------------------------------------------
-
-
-
---- The type of cache for each kind of pattern:
---
--- Patterns are memoized using different strategies, depending on what kind of
--- data is associated with them.
-
-
-local patternwith = {
-    constant = {
-        "Cp", "true", "false"
-    },
-    -- only aux
-    aux = {
-        "string", "any",
-        "char", "range", "set",
-        "ref", "sequence", "choice",
-        "Carg", "Cb"
-    },
-    -- only sub pattern
-    subpt = {
-        "unm", "lookahead", "C", "Cf",
-        "Cg", "Cs", "Ct", "/zero"
-    },
-    -- both
-    both = {
-        "behind", "at least", "at most", "Clb", "Cmt",
-        "div_string", "div_number", "div_table", "div_function"
-    },
-    none = "grammar", "Cc"
-}
-
-
-
--------------------------------------------------------------------------------
-return function(Builder, LL) --- module wrapper.
---
-
-
-local S_tostring = Builder.set.tostring
-
-
--------------------------------------------------------------------------------
---- Base pattern constructor
---
-
-local newpattern, pattmt
--- This deals with the Lua 5.1/5.2 compatibility, and restricted
--- environements without access to newproxy and/or debug.setmetatable.
-
-if compat.proxies and not compat.lua52_len then 
-    -- Lua 5.1 / LuaJIT without compat.
-    local proxycache = weakkey{}
-    local __index_LL = {__index = LL}
-
-    local baseproxy = newproxy(true)
-    pattmt = getmetatable(baseproxy)
-    Builder.proxymt = pattmt
-
-    function pattmt:__index(k)
-        return proxycache[self][k]
-    end
-
-    function pattmt:__newindex(k, v)
-        proxycache[self][k] = v
-    end
-
-    function LL.getdirect(p) return proxycache[p] end
-
-    function newpattern(cons)
-        local pt = newproxy(baseproxy)
-        setmetatable(cons, __index_LL)
-        proxycache[pt]=cons
-        return pt
-    end
-else
-    -- Fallback if neither __len(table) nor newproxy work
-    -- for example in restricted sandboxes.
-    if LL.warnings and not compat.lua52_len then
-        print("Warning: The `__len` metatethod won't work with patterns, "
-            .."use `LL.L(pattern)` for lookaheads.")
-    end
-    pattmt = LL
-    function LL.getdirect (p) return p end
-
-    function newpattern(pt)
-        return setmetatable(pt,LL)
-    end
-end
-
-Builder.newpattern = newpattern
-
-local
-function LL_ispattern(pt) return getmetatable(pt) == pattmt end
-LL.ispattern = LL_ispattern
-
-function LL.type(pt)
-    if LL_ispattern(pt) then
-        return "pattern"
-    else
-        return nil
-    end
-end
-
-
--------------------------------------------------------------------------------
---- The caches
---
-
-local ptcache, meta
-local
-function resetcache()
-    ptcache, meta = {}, weakkey{}
-    Builder.ptcache = ptcache
-    -- Patterns with aux only.
-    for _, p in ipairs(patternwith.aux) do
-        ptcache[p] = weakval{}
-    end
-
-    -- Patterns with only one sub-pattern.
-    for _, p in ipairs(patternwith.subpt) do
-        ptcache[p] = weakval{}
-    end
-
-    -- Patterns with both
-    for _, p in ipairs(patternwith.both) do
-        ptcache[p] = {}
-    end
-
-    return ptcache
-end
-LL.resetptcache = resetcache
-
-resetcache()
-
-
--------------------------------------------------------------------------------
---- Individual pattern constructor
---
-
-local constructors = {}
-Builder.constructors = constructors
-
-constructors["constant"] = {
-    truept  = newpattern{ pkind = "true" },
-    falsept = newpattern{ pkind = "false" },
-    Cppt    = newpattern{ pkind = "Cp" }
-}
-
--- data manglers that produce cache keys for each aux type.
--- `id()` for unspecified cases.
-local getauxkey = {
-    string = function(aux, as_is) return as_is end,
-    table = copy,
-    set = function(aux, as_is)
-        return S_tostring(aux)
-    end,
-    range = function(aux, as_is)
-        return t_concat(as_is, "|")
-    end,
-    sequence = function(aux, as_is)
-        return t_concat(map(getuniqueid, aux),"|")
-    end
-}
-
-getauxkey.choice = getauxkey.sequence
-
-constructors["aux"] = function(typ, aux, as_is)
-     -- dprint("CONS: ", typ, pt, aux, as_is)
-    local cache = ptcache[typ]
-    local key = (getauxkey[typ] or id)(aux, as_is)
-    if not cache[key] then
-        cache[key] = newpattern{
-            pkind = typ,
-            aux = aux,
-            as_is = as_is
-        }
-    end
-    return cache[key]
-end
-
--- no cache for grammars
-constructors["none"] = function(typ, aux)
-    -- [[DBG]] print("CONS: ", typ, _, aux)
-    -- [[DBG]] print(debug.traceback(1))
-    return newpattern{
-        pkind = typ,
-        aux = aux
-    }
-end
-
-constructors["subpt"] = function(typ, pt)
-    -- [[DP]]print("CONS: ", typ, pt, aux)
-    local cache = ptcache[typ]
-    if not cache[pt] then
-        cache[pt] = newpattern{
-            pkind = typ,
-            pattern = pt
-        }
-    end
-    return cache[pt]
-end
-
-constructors["both"] = function(typ, pt, aux)
-    -- [[DBG]] print("CONS: ", typ, pt, aux)
-    local cache = ptcache[typ][aux]
-    if not cache then
-        ptcache[typ][aux] = weakval{}
-        cache = ptcache[typ][aux]
-    end
-    if not cache[pt] then
-        cache[pt] = newpattern{
-            pkind = typ,
-            pattern = pt,
-            aux = aux,
-            cache = cache -- needed to keep the cache as long as the pattern exists.
-        }
-    end
-    return cache[pt]
-end
-
-constructors["binary"] = function(typ, a, b)
-    -- [[DBG]] print("CONS: ", typ, pt, aux)
-    return newpattern{
-        a, b;
-        pkind = typ,
-    }
-end
-
-end -- module wrapper
-
---                   The Romantic WTF public license.
---                   --------------------------------
---                   a.k.a. version "<3" or simply v3
---
---
---            Dear user,
---
---            The LuLPeg library
---
---                                             \
---                                              '.,__
---                                           \  /
---                                            '/,__
---                                            /
---                                           /
---                                          /
---                       has been          / released
---                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
---                under  the  Romantic   WTF Public License.
---               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---               I hereby grant you an irrevocable license to
---                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                  do what the gentle caress you want to
---                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                           with   this   lovely
---                              ~ ~ ~ ~ ~ ~ ~ ~
---                               / thing...
---                              /  ~ ~ ~ ~
---                             /    Love,
---                        #   /      '.'
---                        #######      ·
---                        #####
---                        ###
---                        #
---
---            -- Pierre-Yves
---
---
---            P.S.: Even though I poured my heart into this work,
---                  I _cannot_ provide any warranty regarding
---                  its fitness for _any_ purpose. You
---                  acknowledge that I will not be held liable
---                  for any damage its use could incur.
-]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
-assert(not sources["optimizer"],"module already exists")sources["optimizer"]=([===[-- <pack optimizer> --
--- Nothing for now.
-]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
-assert(not sources["factorizer"],"module already exists")sources["factorizer"]=([===[-- <pack factorizer> --
-local ipairs, pairs, print, setmetatable
-    = ipairs, pairs, print, setmetatable
-
---[[DBG]] local debug = require "debug"
-local u = require"util"
-
-local   id,   nop,   setify,   weakkey
-    = u.id, u.nop, u.setify, u.weakkey
-
-local _ENV = u.noglobals() ----------------------------------------------------
-
-
-
----- helpers
---
-
--- handle the identity or break properties of P(true) and P(false) in
--- sequences/arrays.
-local
-function process_booleans(a, b, opts)
-    local id, brk = opts.id, opts.brk
-    if a == id then return true, b
-    elseif b == id then return true, a
-    elseif a == brk then return true, brk
-    else return false end
-end
-
--- patterns where `C(x) + C(y) => C(x + y)` apply.
-local unary = setify{
-    "unm", "lookahead", "C", "Cf",
-    "Cg", "Cs", "Ct", "/zero"
-}
-
-local unary_aux = setify{
-    "behind", "at least", "at most", "Clb", "Cmt",
-    "div_string", "div_number", "div_table", "div_function"
-}
-
--- patterns where p1 + p2 == p1 U p2
-local unifiable = setify{"char", "set", "range"}
-
-
-local hasCmt; hasCmt = setmetatable({}, {__mode = "k", __index = function(self, pt)
-    local kind, res = pt.pkind, false
-    if kind == "Cmt"
-    or kind == "ref"
-    then
-        res = true
-    elseif unary[kind] or unary_aux[kind] then
-        res = hasCmt[pt.pattern]
-    elseif kind == "choice" or kind == "sequence" then
-        res = hasCmt[pt[1]] or hasCmt[pt[2]]
-    end
-    hasCmt[pt] = res
-    return res
-end})
-
-
-
-return function (Builder, LL) --------------------------------------------------
-
-if Builder.options.factorize == false then
-    return {
-        choice = nop,
-        sequence = nop,
-        lookahead = nop,
-        unm = nop
-    }
-end
-
-local constructors, LL_P =  Builder.constructors, LL.P
-local truept, falsept
-    = constructors.constant.truept
-    , constructors.constant.falsept
-
-local --Range, Set,
-    S_union
-    = --Builder.Range, Builder.set.new,
-    Builder.set.union
-
-local mergeable = setify{"char", "set"}
-
-
-local type2cons = {
-    ["/zero"] = "__div",
-    ["div_number"] = "__div",
-    ["div_string"] = "__div",
-    ["div_table"] = "__div",
-    ["div_function"] = "__div",
-    ["at least"] = "__exp",
-    ["at most"] = "__exp",
-    ["Clb"] = "Cg",
-}
-
-local
-function choice (a, b)
-    do  -- handle the identity/break properties of true and false.
-        local hasbool, res = process_booleans(a, b, { id = falsept, brk = truept })
-        if hasbool then return res end
-    end
-    local ka, kb = a.pkind, b.pkind
-    if a == b and not hasCmt[a] then
-        return a
-    elseif ka == "choice" then -- correct associativity without blowing up the stack
-        local acc, i = {}, 1
-        while a.pkind == "choice" do
-            acc[i], a, i = a[1], a[2], i + 1
-        end
-        acc[i] = a
-        for j = i, 1, -1 do
-            b = acc[j] + b
-        end
-        return b
-    elseif mergeable[ka] and mergeable[kb] then
-        return constructors.aux("set", S_union(a.aux, b.aux))
-    elseif mergeable[ka] and kb == "any" and b.aux == 1
-    or     mergeable[kb] and ka == "any" and a.aux == 1 then
-        -- [[DBG]] print("=== Folding "..ka.." and "..kb..".")
-        return ka == "any" and a or b
-    elseif ka == kb then
-        -- C(a) + C(b) => C(a + b)
-        if (unary[ka] or unary_aux[ka]) and ( a.aux == b.aux ) then
-            return LL[type2cons[ka] or ka](a.pattern + b.pattern, a.aux)
-        elseif ( ka == kb ) and ka == "sequence" then
-            -- "ab" + "ac" => "a" * ( "b" + "c" )
-            if a[1] == b[1]  and not hasCmt[a[1]] then
-                return a[1] * (a[2] + b[2])
-            end
-        end
-    end
-    return false
-end
-
-
-
-local
-function lookahead (pt)
-    return pt
-end
-
-
-local
-function sequence(a, b)
-    -- [[DBG]] print("Factorize Sequence")
-    -- A few optimizations:
-    -- 1. handle P(true) and P(false)
-    do
-        local hasbool, res = process_booleans(a, b, { id = truept, brk = falsept })
-        if hasbool then return res end
-    end
-    -- 2. Fix associativity
-    local ka, kb = a.pkind, b.pkind
-    if ka == "sequence" then -- correct associativity without blowing up the stack
-        local acc, i = {}, 1
-        while a.pkind == "sequence" do
-            acc[i], a, i = a[1], a[2], i + 1
-        end
-        acc[i] = a
-        for j = i, 1, -1 do
-            b = acc[j] * b
-        end
-        return b
-    elseif (ka == "one" or ka == "any") and (kb == "one" or kb == "any") then
-        return LL_P(a.aux + b.aux)
-    end
-    return false
-end
-
-local
-function unm (pt)
-    -- [[DP]] print("Factorize Unm")
-    if     pt == truept            then return falsept
-    elseif pt == falsept           then return truept
-    elseif pt.pkind == "unm"       then return #pt.pattern
-    elseif pt.pkind == "lookahead" then return -pt.pattern
-    end
-end
-
-return {
-    choice = choice,
-    lookahead = lookahead,
-    sequence = sequence,
-    unm = unm
-}
-end
-
---                   The Romantic WTF public license.
---                   --------------------------------
---                   a.k.a. version "<3" or simply v3
---
---
---            Dear user,
---
---            The LuLPeg library
---
---                                             \
---                                              '.,__
---                                           \  /
---                                            '/,__
---                                            /
---                                           /
---                                          /
---                       has been          / released
---                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
---                under  the  Romantic   WTF Public License.
---               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---               I hereby grant you an irrevocable license to
---                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                  do what the gentle caress you want to
---                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                           with   this   lovely
---                              ~ ~ ~ ~ ~ ~ ~ ~
---                               / thing...
---                              /  ~ ~ ~ ~
---                             /    Love,
---                        #   /      '.'
---                        #######      ·
---                        #####
---                        ###
---                        #
---
---            -- Pierre-Yves
---
---
---            P.S.: Even though I poured my heart into this work,
---                  I _cannot_ provide any warranty regarding
---                  its fitness for _any_ purpose. You
---                  acknowledge that I will not be held liable
---                  for any damage its use could incur.
-]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
-assert(not sources["printers"],"module already exists")sources["printers"]=([===[-- <pack printers> --
-return function(Builder, LL)
-
--- Print
-
-local ipairs, pairs, print, tostring, type
-    = ipairs, pairs, print, tostring, type
-
-local s, t, u = require"string", require"table", require"util"
-local S_tostring = Builder.set.tostring
-
-
-local _ENV = u.noglobals() ----------------------------------------------------
-
-
-
-local s_char, s_sub, t_concat
-    = s.char, s.sub, t.concat
-
-local   expose,   load,   map
-    = u.expose, u.load, u.map
-
-local escape_index = {
-    ["\f"] = "\\f",
-    ["\n"] = "\\n",
-    ["\r"] = "\\r",
-    ["\t"] = "\\t",
-    ["\v"] = "\\v",
-    ["\127"] = "\\ESC"
-}
-
-local function flatten(kind, list)
-    if list[2].pkind == kind then
-        return list[1], flatten(kind, list[2])
-    else
-        return list[1], list[2]
-    end
-end
-
-for i = 0, 8 do escape_index[s_char(i)] = "\\"..i end
-for i = 14, 31 do escape_index[s_char(i)] = "\\"..i end
-
-local
-function escape( str )
-    return str:gsub("%c", escape_index)
-end
-
-local
-function set_repr (set) 
-    return s_char(load("return "..S_tostring(set))())
-end
-
-
-local printers = {}
-
-local
-function LL_pprint (pt, offset, prefix)
-    -- [[DBG]] print("PRINT -", pt)
-    -- [[DBG]] print("PRINT +", pt.pkind)
-    -- [[DBG]] expose(pt)
-    -- [[DBG]] expose(LL.proxycache[pt])
-    return printers[pt.pkind](pt, offset, prefix)
-end
-
-function LL.pprint (pt0)
-    local pt = LL.P(pt0)
-    print"\nPrint pattern"
-    LL_pprint(pt, "", "")
-    print"--- /pprint\n"
-    return pt0
-end
-
-for k, v in pairs{
-    string       = [[ "P( \""..escape(pt.as_is).."\" )"       ]],
-    char         = [[ "P( \""..escape(to_char(pt.aux)).."\" )"]],
-    ["true"]     = [[ "P( true )"                     ]],
-    ["false"]    = [[ "P( false )"                    ]],
-    eos          = [[ "~EOS~"                         ]],
-    one          = [[ "P( one )"                      ]],
-    any          = [[ "P( "..pt.aux.." )"             ]],
-    set          = [[ "S( "..'"'..escape(set_repr(pt.aux))..'"'.." )" ]],
-    ["function"] = [[ "P( "..pt.aux.." )"             ]],
-    ref = [[
-        "V( ",
-            (type(pt.aux) == "string" and "\""..pt.aux.."\"")
-                          or tostring(pt.aux)
-        , " )"
-        ]],
-    range = [[
-        "R( ",
-            escape(t_concat(map(
-                pt.as_is,
-                function(e) return '"'..e..'"' end)
-            , ", "))
-        ," )"
-        ]]
-} do
-    printers[k] = load(([==[
-        local k, map, t_concat, to_char, escape, set_repr = ...
-        return function (pt, offset, prefix)
-            print(t_concat{offset,prefix,XXXX})
-        end
-    ]==]):gsub("XXXX", v), k.." printer")(k, map, t_concat, s_char, escape, set_repr)
-end
-
-
-for k, v in pairs{
-    ["behind"] = [[ LL_pprint(pt.pattern, offset, "B ") ]],
-    ["at least"] = [[ LL_pprint(pt.pattern, offset, pt.aux.." ^ ") ]],
-    ["at most"] = [[ LL_pprint(pt.pattern, offset, pt.aux.." ^ ") ]],
-    unm        = [[LL_pprint(pt.pattern, offset, "- ")]],
-    lookahead  = [[LL_pprint(pt.pattern, offset, "# ")]],
-    choice = [[
-        print(offset..prefix.."+")
-        -- dprint"Printer for choice"
-        local ch, i = {}, 1
-        while pt.pkind == "choice" do
-            ch[i], pt, i = pt[1], pt[2], i + 1
-        end
-        ch[i] = pt
-
-        map(ch, LL_pprint, offset.." :", "")
-        ]],
-    sequence = [=[
-        -- print("Seq printer", s, u)
-        -- u.expose(pt)
-        print(offset..prefix.."*")
-        local acc, p2 = {}
-        offset = offset .. " |"
-        while true do
-            if pt.pkind ~= "sequence" then -- last element
-                if pt.pkind == "char" then
-                    acc[#acc + 1] = pt.aux
-                    print(offset..'P( "'..s.char(u.unpack(acc))..'" )')
-                else
-                    if #acc ~= 0 then
-                        print(offset..'P( "'..s.char(u.unpack(acc))..'" )')
-                    end
-                    LL_pprint(pt, offset, "")
-                end
-                break
-            elseif pt[1].pkind == "char" then
-                acc[#acc + 1] = pt[1].aux
-            elseif #acc ~= 0 then
-                print(offset..'P( "'..s.char(u.unpack(acc))..'" )')
-                acc = {}
-                LL_pprint(pt[1], offset, "")
-            else
-                LL_pprint(pt[1], offset, "")
-            end
-            pt = pt[2]
-        end
-        ]=],
-    grammar   = [[
-        print(offset..prefix.."Grammar")
-        -- dprint"Printer for Grammar"
-        for k, pt in pairs(pt.aux) do
-            local prefix = ( type(k)~="string"
-                             and tostring(k)
-                             or "\""..k.."\"" )
-            LL_pprint(pt, offset.."  ", prefix .. " = ")
-        end
-    ]]
-} do
-    printers[k] = load(([[
-        local map, LL_pprint, pkind, s, u, flatten = ...
-        return function (pt, offset, prefix)
-            XXXX
-        end
-    ]]):gsub("XXXX", v), k.." printer")(map, LL_pprint, type, s, u, flatten)
-end
-
--------------------------------------------------------------------------------
---- Captures patterns
---
-
--- for _, cap in pairs{"C", "Cs", "Ct"} do
--- for _, cap in pairs{"Carg", "Cb", "Cp"} do
--- function LL_Cc (...)
--- for _, cap in pairs{"Cf", "Cmt"} do
--- function LL_Cg (pt, tag)
--- local valid_slash_type = newset{"string", "number", "table", "function"}
-
-
-for _, cap in pairs{"C", "Cs", "Ct"} do
-    printers[cap] = function (pt, offset, prefix)
-        print(offset..prefix..cap)
-        LL_pprint(pt.pattern, offset.."  ", "")
-    end
-end
-
-for _, cap in pairs{"Cg", "Clb", "Cf", "Cmt", "div_number", "/zero", "div_function", "div_table"} do
-    printers[cap] = function (pt, offset, prefix)
-        print(offset..prefix..cap.." "..tostring(pt.aux or ""))
-        LL_pprint(pt.pattern, offset.."  ", "")
-    end
-end
-
-printers["div_string"] = function (pt, offset, prefix)
-    print(offset..prefix..'/string "'..tostring(pt.aux or "")..'"')
-    LL_pprint(pt.pattern, offset.."  ", "")
-end
-
-for _, cap in pairs{"Carg", "Cp"} do
-    printers[cap] = function (pt, offset, prefix)
-        print(offset..prefix..cap.."( "..tostring(pt.aux).." )")
-    end
-end
-
-printers["Cb"] = function (pt, offset, prefix)
-    print(offset..prefix.."Cb( \""..pt.aux.."\" )")
-end
-
-printers["Cc"] = function (pt, offset, prefix)
-    print(offset..prefix.."Cc(" ..t_concat(map(pt.aux, tostring),", ").." )")
-end
-
-
--------------------------------------------------------------------------------
---- Capture objects
---
-
-local cprinters = {}
-
-local padding = "   "
-local function padnum(n)
-    n = tostring(n)
-    n = n .."."..((" "):rep(4 - #n))
-    return n
-end
-
-local function _cprint(caps, ci, indent, sbj, n)
-    local openclose, kind = caps.openclose, caps.kind
-    indent = indent or 0
-    while kind[ci] and openclose[ci] >= 0 do
-        if caps.openclose[ci] > 0 then 
-            print(t_concat({
-                            padnum(n),
-                            padding:rep(indent),
-                            caps.kind[ci],
-                            ": start = ", tostring(caps.bounds[ci]),
-                            " finish = ", tostring(caps.openclose[ci]),
-                            caps.aux[ci] and " aux = " or "",
-                            caps.aux[ci] and (
-                                type(caps.aux[ci]) == "string" 
-                                    and '"'..tostring(caps.aux[ci])..'"'
-                                or tostring(caps.aux[ci])
-                            ) or "",
-                            " \t", s_sub(sbj, caps.bounds[ci], caps.openclose[ci] - 1)
-                        }))
-            if type(caps.aux[ci]) == "table" then expose(caps.aux[ci]) end
-        else
-            local kind = caps.kind[ci]
-            local start = caps.bounds[ci]
-            print(t_concat({
-                            padnum(n),
-                            padding:rep(indent), kind,
-                            ": start = ", start,
-                            caps.aux[ci] and " aux = " or "",
-                            caps.aux[ci] and (
-                                type(caps.aux[ci]) == "string" 
-                                    and '"'..tostring(caps.aux[ci])..'"'
-                                or tostring(caps.aux[ci])
-                            ) or ""
-                        }))
-            ci, n = _cprint(caps, ci + 1, indent + 1, sbj, n + 1)
-            print(t_concat({
-                            padnum(n),
-                            padding:rep(indent),
-                            "/", kind,
-                            " finish = ", tostring(caps.bounds[ci]),
-                            " \t", s_sub(sbj, start, (caps.bounds[ci] or 1) - 1)
-                        }))
-        end
-        n = n + 1
-        ci = ci + 1
-    end
-
-    return ci, n
-end
-
-function LL.cprint (caps, ci, sbj)
-    ci = ci or 1
-    print"\nCapture Printer:\n================"
-    -- print(capture)
-    -- [[DBG]] expose(caps)
-    _cprint(caps, ci, 0, sbj, 1)
-    print"================\n/Cprinter\n"
-end
-
-
-
-
-return { pprint = LL.pprint,cprint = LL.cprint }
-
-end -- module wrapper ---------------------------------------------------------
-
-
---                   The Romantic WTF public license.
---                   --------------------------------
---                   a.k.a. version "<3" or simply v3
---
---
---            Dear user,
---
---            The LuLPeg library
---
---                                             \
---                                              '.,__
---                                           \  /
---                                            '/,__
---                                            /
---                                           /
---                                          /
---                       has been          / released
---                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
---                under  the  Romantic   WTF Public License.
---               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---               I hereby grant you an irrevocable license to
---                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                  do what the gentle caress you want to
---                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                           with   this   lovely
---                              ~ ~ ~ ~ ~ ~ ~ ~
---                               / thing...
---                              /  ~ ~ ~ ~
---                             /    Love,
---                        #   /      '.'
---                        #######      ·
---                        #####
---                        ###
---                        #
---
---            -- Pierre-Yves
---
---
---            P.S.: Even though I poured my heart into this work,
---                  I _cannot_ provide any warranty regarding
---                  its fitness for _any_ purpose. You
---                  acknowledge that I will not be held liable
---                  for any damage its use could incur.
-]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
-assert(not sources["compat"],"module already exists")sources["compat"]=([===[-- <pack compat> --
-
--- compat.lua
-
-local _, debug, jit
-
-_, debug = pcall(require, "debug")
-
-_, jit = pcall(require, "jit")
-jit = _ and jit
-
-local compat = {
-    debug = debug,
-
-    lua51 = (_VERSION == "Lua 5.1") and not jit,
-    lua52 = _VERSION == "Lua 5.2",
-    luajit = jit and true or false,
-    jit = jit and jit.status(),
-
-    -- LuaJIT can optionally support __len on tables.
-    lua52_len = not #setmetatable({},{__len = function()end}),
-
-    proxies = pcall(function()
-        local prox = newproxy(true)
-        local prox2 = newproxy(prox)
-        assert (type(getmetatable(prox)) == "table" 
-                and (getmetatable(prox)) == (getmetatable(prox2)))
-    end),
-    _goto = not not(loadstring or load)"::R::"
-}
-
-
-return compat
-
---                   The Romantic WTF public license.
---                   --------------------------------
---                   a.k.a. version "<3" or simply v3
---
---
---            Dear user,
---
---            The LuLPeg library
---
---                                             \
---                                              '.,__
---                                           \  /
---                                            '/,__
---                                            /
---                                           /
---                                          /
---                       has been          / released
---                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
---                under  the  Romantic   WTF Public License.
---               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---               I hereby grant you an irrevocable license to
---                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                  do what the gentle caress you want to
---                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                           with   this   lovely
---                              ~ ~ ~ ~ ~ ~ ~ ~
---                               / thing...
---                              /  ~ ~ ~ ~
---                             /    Love,
---                        #   /      '.'
---                        #######      ·
---                        #####
---                        ###
---                        #
---
---            -- Pierre-Yves
---
---
---            P.S.: Even though I poured my heart into this work,
---                  I _cannot_ provide any warranty regarding
---                  its fitness for _any_ purpose. You
---                  acknowledge that I will not be held liable
---                  for any damage its use could incur.
-]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
-assert(not sources["charsets"],"module already exists")sources["charsets"]=([===[-- <pack charsets> --
-
--- Charset handling
-
-
--- FIXME:
--- Currently, only
--- * `binary_get_int()`,
--- * `binary_split_int()` and
--- * `binary_validate()`
--- are effectively used by the client code.
-
--- *_next_int, *_split_, *_get_ and *_next_char should probably be disposed of.
-
-
-
--- We provide:
--- * utf8_validate(subject, start, finish) -- validator
--- * utf8_split_int(subject)               --> table{int}
--- * utf8_split_char(subject)              --> table{char}
--- * utf8_next_int(subject, index)         -- iterator
--- * utf8_next_char(subject, index)        -- iterator
--- * utf8_get_int(subject, index)          -- Julia-style iterator
---                                            returns int, next_index
--- * utf8_get_char(subject, index)         -- Julia-style iterator
---                                            returns char, next_index
---
--- See each function for usage.
-
-
-local s, t, u = require"string", require"table", require"util"
-
-
-
-local _ENV = u.noglobals() ----------------------------------------------------
-
-
-
-local copy = u.copy
-
-local s_char, s_sub, s_byte, t_concat, t_insert
-    = s.char, s.sub, s.byte, t.concat, t.insert
-
--------------------------------------------------------------------------------
---- UTF-8
---
-
--- Utility function.
--- Modified from code by Kein Hong Man <khman@users.sf.net>,
--- found at http://lua-users.org/wiki/SciteUsingUnicode.
-
-local
-function utf8_offset (byte)
-    if byte < 128 then return 0, byte
-    elseif byte < 192 then
-        error("Byte values between 0x80 to 0xBF cannot start a multibyte sequence")
-    elseif byte < 224 then return 1, byte - 192
-    elseif byte < 240 then return 2, byte - 224
-    elseif byte < 248 then return 3, byte - 240
-    elseif byte < 252 then return 4, byte - 248
-    elseif byte < 254 then return 5, byte - 252
-    else
-        error("Byte values between 0xFE and OxFF cannot start a multibyte sequence")
-    end
-end
-
-
--- validate a given (sub)string.
--- returns two values:
--- * The first is either true, false or nil, respectively on success, error, or
---   incomplete subject.
--- * The second is the index of the last byte of the last valid char.
-local
-function utf8_validate (subject, start, finish)
-    start = start or 1
-    finish = finish or #subject
-
-    local offset, char
-        = 0
-    for i = start,finish do
-        local b = s_byte(subject,i)
-        if offset == 0 then
-            char = i
-            success, offset = pcall(utf8_offset, b)
-            if not success then return false, char - 1 end
-        else
-            if not (127 < b and b < 192) then
-                return false, char - 1
-            end
-            offset = offset -1
-        end
-    end
-    if offset ~= 0 then return nil, char - 1 end -- Incomplete input.
-    return true, finish
-end
-
--- Usage:
---     for finish, start, cpt in utf8_next_int, "˙†ƒ˙©√" do
---         print(cpt)
---     end
--- `start` and `finish` being the bounds of the character, and `cpt` being the UTF-8 code point.
--- It produces:
---     729
---     8224
---     402
---     729
---     169
---     8730
-local
-function utf8_next_int (subject, i)
-    i = i and i+1 or 1
-    if i > #subject then return end
-    local c = s_byte(subject, i)
-    local offset, val = utf8_offset(c)
-    for i = i+1, i+offset do
-        c = s_byte(subject, i)
-        val = val * 64 + (c-128)
-    end
-  return i + offset, i, val
-end
-
-
--- Usage:
---     for finish, start, cpt in utf8_next_char, "˙†ƒ˙©√" do
---         print(cpt)
---     end
--- `start` and `finish` being the bounds of the character, and `cpt` being the UTF-8 code point.
--- It produces:
---     ˙
---     †
---     ƒ
---     ˙
---     ©
---     √
-local
-function utf8_next_char (subject, i)
-    i = i and i+1 or 1
-    if i > #subject then return end
-    local offset = utf8_offset(s_byte(subject,i))
-    return i + offset, i, s_sub(subject, i, i + offset)
-end
-
-
--- Takes a string, returns an array of code points.
-local
-function utf8_split_int (subject)
-    local chars = {}
-    for _, _, c in utf8_next_int, subject do
-        t_insert(chars,c)
-    end
-    return chars
-end
-
--- Takes a string, returns an array of characters.
-local
-function utf8_split_char (subject)
-    local chars = {}
-    for _, _, c in utf8_next_char, subject do
-        t_insert(chars,c)
-    end
-    return chars
-end
-
-local
-function utf8_get_int(subject, i)
-    if i > #subject then return end
-    local c = s_byte(subject, i)
-    local offset, val = utf8_offset(c)
-    for i = i+1, i+offset do
-        c = s_byte(subject, i)
-        val = val * 64 + ( c - 128 )
-    end
-    return val, i + offset + 1
-end
-
-local
-function split_generator (get)
-    if not get then return end
-    return function(subject)
-        local res = {}
-        local o, i = true
-        while o do
-            o,i = get(subject, i)
-            res[#res] = o
-        end
-        return res
-    end
-end
-
-local
-function merge_generator (char)
-    if not char then return end
-    return function(ary)
-        local res = {}
-        for i = 1, #ary do
-            t_insert(res,char(ary[i]))
-        end
-        return t_concat(res)
-    end
-end
-
-
-local
-function utf8_get_int2 (subject, i)
-    local byte, b5, b4, b3, b2, b1 = s_byte(subject, i)
-    if byte < 128 then return byte, i + 1
-    elseif byte < 192 then
-        error("Byte values between 0x80 to 0xBF cannot start a multibyte sequence")
-    elseif byte < 224 then
-        return (byte - 192)*64 + s_byte(subject, i+1), i+2
-    elseif byte < 240 then
-            b2, b1 = s_byte(subject, i+1, i+2)
-        return (byte-224)*4096 + b2%64*64 + b1%64, i+3
-    elseif byte < 248 then
-        b3, b2, b1 = s_byte(subject, i+1, i+2, 1+3)
-        return (byte-240)*262144 + b3%64*4096 + b2%64*64 + b1%64, i+4
-    elseif byte < 252 then
-        b4, b3, b2, b1 = s_byte(subject, i+1, i+2, 1+3, i+4)
-        return (byte-248)*16777216 + b4%64*262144 + b3%64*4096 + b2%64*64 + b1%64, i+5
-    elseif byte < 254 then
-        b5, b4, b3, b2, b1 = s_byte(subject, i+1, i+2, 1+3, i+4, i+5)
-        return (byte-252)*1073741824 + b5%64*16777216 + b4%64*262144 + b3%64*4096 + b2%64*64 + b1%64, i+6
-    else
-        error("Byte values between 0xFE and OxFF cannot start a multibyte sequence")
-    end
-end
-
-
-local
-function utf8_get_char(subject, i)
-    if i > #subject then return end
-    local offset = utf8_offset(s_byte(subject,i))
-    return s_sub(subject, i, i + offset), i + offset + 1
-end
-
-local
-function utf8_char(c)
-    if     c < 128 then
-        return                                                                               s_char(c)
-    elseif c < 2048 then
-        return                                                          s_char(192 + c/64, 128 + c%64)
-    elseif c < 55296 or 57343 < c and c < 65536 then
-        return                                         s_char(224 + c/4096, 128 + c/64%64, 128 + c%64)
-    elseif c < 2097152 then
-        return                      s_char(240 + c/262144, 128 + c/4096%64, 128 + c/64%64, 128 + c%64)
-    elseif c < 67108864 then
-        return s_char(248 + c/16777216, 128 + c/262144%64, 128 + c/4096%64, 128 + c/64%64, 128 + c%64)
-    elseif c < 2147483648 then
-        return s_char( 252 + c/1073741824,
-                   128 + c/16777216%64, 128 + c/262144%64, 128 + c/4096%64, 128 + c/64%64, 128 + c%64)
-    end
-    error("Bad Unicode code point: "..c..".")
-end
-
--------------------------------------------------------------------------------
---- ASCII and binary.
---
-
--- See UTF-8 above for the API docs.
-
-local
-function binary_validate (subject, start, finish)
-    start = start or 1
-    finish = finish or #subject
-    return true, finish
-end
-
-local
-function binary_next_int (subject, i)
-    i = i and i+1 or 1
-    if i >= #subject then return end
-    return i, i, s_sub(subject, i, i)
-end
-
-local
-function binary_next_char (subject, i)
-    i = i and i+1 or 1
-    if i > #subject then return end
-    return i, i, s_byte(subject,i)
-end
-
-local
-function binary_split_int (subject)
-    local chars = {}
-    for i = 1, #subject do
-        t_insert(chars, s_byte(subject,i))
-    end
-    return chars
-end
-
-local
-function binary_split_char (subject)
-    local chars = {}
-    for i = 1, #subject do
-        t_insert(chars, s_sub(subject,i,i))
-    end
-    return chars
-end
-
-local
-function binary_get_int(subject, i)
-    return s_byte(subject, i), i + 1
-end
-
-local
-function binary_get_char(subject, i)
-    return s_sub(subject, i, i), i + 1
-end
-
-
--------------------------------------------------------------------------------
---- The table
---
-
-local charsets = {
-    binary = {
-        name = "binary",
-        binary = true,
-        validate   = binary_validate,
-        split_char = binary_split_char,
-        split_int  = binary_split_int,
-        next_char  = binary_next_char,
-        next_int   = binary_next_int,
-        get_char   = binary_get_char,
-        get_int    = binary_get_int,
-        tochar    = s_char
-    },
-    ["UTF-8"] = {
-        name = "UTF-8",
-        validate   = utf8_validate,
-        split_char = utf8_split_char,
-        split_int  = utf8_split_int,
-        next_char  = utf8_next_char,
-        next_int   = utf8_next_int,
-        get_char   = utf8_get_char,
-        get_int    = utf8_get_int
-    }
-}
-
-return function (Builder)
-    local cs = Builder.options.charset or "binary"
-    if charsets[cs] then
-        Builder.charset = copy(charsets[cs])
-        Builder.binary_split_int = binary_split_int
-    else
-        error("NYI: custom charsets")
-    end
-end
-
-
---                   The Romantic WTF public license.
---                   --------------------------------
---                   a.k.a. version "<3" or simply v3
---
---
---            Dear user,
---
---            The LuLPeg library
---
---                                             \
---                                              '.,__
---                                           \  /
---                                            '/,__
---                                            /
---                                           /
---                                          /
---                       has been          / released
---                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
---                under  the  Romantic   WTF Public License.
---               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---               I hereby grant you an irrevocable license to
---                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                  do what the gentle caress you want to
---                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                           with   this   lovely
---                              ~ ~ ~ ~ ~ ~ ~ ~
---                               / thing...
---                              /  ~ ~ ~ ~
---                             /    Love,
---                        #   /      '.'
---                        #######      ·
---                        #####
---                        ###
---                        #
---
---            -- Pierre-Yves
---
---
---            P.S.: Even though I poured my heart into this work,
---                  I _cannot_ provide any warranty regarding
---                  its fitness for _any_ purpose. You
---                  acknowledge that I will not be held liable
---                  for any damage its use could incur.
-]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
-assert(not sources["util"],"module already exists")sources["util"]=([===[-- <pack util> --
-
--- A collection of general purpose helpers.
-
---[[DGB]] local debug = require"debug"
-
-local getmetatable, setmetatable, load, loadstring, next
-    , pairs, pcall, print, rawget, rawset, select, tostring
-    , type, unpack
-    = getmetatable, setmetatable, load, loadstring, next
-    , pairs, pcall, print, rawget, rawset, select, tostring
-    , type, unpack
-
-local m, s, t = require"math", require"string", require"table"
-
-local m_max, s_match, s_gsub, t_concat, t_insert
-    = m.max, s.match, s.gsub, t.concat, t.insert
-
-local compat = require"compat"
-
-
--- No globals definition:
-
-local
-function nop () end
-
-local noglobals, getglobal, setglobal if pcall and not compat.lua52 and not release then
-    local function errR (_,i)
-        error("illegal global read: " .. tostring(i), 2)
-    end
-    local function errW (_,i, v)
-        error("illegal global write: " .. tostring(i)..": "..tostring(v), 2)
-    end
-    local env = setmetatable({}, { __index=errR, __newindex=errW })
-    noglobals = function()
-        pcall(setfenv, 3, env)
-    end
-    function getglobal(k) rawget(env, k) end
-    function setglobal(k, v) rawset(env, k, v) end
-else
-    noglobals = nop
-end
-
-
-
-local _ENV = noglobals() ------------------------------------------------------
-
-
-
-local util = {
-    nop = nop,
-    noglobals = noglobals,
-    getglobal = getglobal,
-    setglobal = setglobal
-}
-
-util.unpack = t.unpack or unpack
-util.pack = t.pack or function(...) return { n = select('#', ...), ... } end
-
-
-if compat.lua51 then
-    local old_load = load
-
-   function util.load (ld, source, mode, env)
-     -- We ignore mode. Both source and bytecode can be loaded.
-     local fun
-     if type (ld) == 'string' then
-       fun = loadstring (ld)
-     else
-       fun = old_load (ld, source)
-     end
-     if env then
-       setfenv (fun, env)
-     end
-     return fun
-   end
-else
-    util.load = load
-end
-
-if compat.luajit and compat.jit then
-    function util.max (ary)
-        local max = 0
-        for i = 1, #ary do
-            max = m_max(max,ary[i])
-        end
-        return max
-    end
-elseif compat.luajit then
-    local t_unpack = util.unpack
-    function util.max (ary)
-     local len = #ary
-        if len <=30 or len > 10240 then
-            local max = 0
-            for i = 1, #ary do
-                local j = ary[i]
-                if j > max then max = j end
-            end
-            return max
-        else
-            return m_max(t_unpack(ary))
-        end
-    end
-else
-    local t_unpack = util.unpack
-    local safe_len = 1000
-    function util.max(array)
-        -- Thanks to Robert G. Jakabosky for this implementation.
-        local len = #array
-        if len == 0 then return -1 end -- FIXME: shouldn't this be `return -1`?
-        local off = 1
-        local off_end = safe_len
-        local max = array[1] -- seed max.
-        repeat
-            if off_end > len then off_end = len end
-            local seg_max = m_max(t_unpack(array, off, off_end))
-            if seg_max > max then
-                max = seg_max
-            end
-            off = off + safe_len
-            off_end = off_end + safe_len
-        until off >= len
-        return max
-    end
-end
-
-
-local
-function setmode(t,mode)
-    local mt = getmetatable(t) or {}
-    if mt.__mode then
-        error("The mode has already been set on table "..tostring(t)..".")
-    end
-    mt.__mode = mode
-    return setmetatable(t, mt)
-end
-
-util.setmode = setmode
-
-function util.weakboth (t)
-    return setmode(t,"kv")
-end
-
-function util.weakkey (t)
-    return setmode(t,"k")
-end
-
-function util.weakval (t)
-    return setmode(t,"v")
-end
-
-function util.strip_mt (t)
-    return setmetatable(t, nil)
-end
-
-local getuniqueid
-do
-    local N, index = 0, {}
-    function getuniqueid(v)
-        if not index[v] then
-            N = N + 1
-            index[v] = N
-        end
-        return index[v]
-    end
-end
-util.getuniqueid = getuniqueid
-
-do
-    local counter = 0
-    function util.gensym ()
-        counter = counter + 1
-        return "___SYM_"..counter
-    end
-end
-
-function util.passprint (...) print(...) return ... end
-
-local val_to_str_, key_to_str, table_tostring, cdata_to_str, t_cache
-local multiplier = 2
-
-local
-function val_to_string (v, indent)
-    indent = indent or 0
-    t_cache = {} -- upvalue.
-    local acc = {}
-    val_to_str_(v, acc, indent, indent)
-    local res = t_concat(acc, "")
-    return res
-end
-util.val_to_str = val_to_string
-
-function val_to_str_ ( v, acc, indent, str_indent )
-    str_indent = str_indent or 1
-    if "string" == type( v ) then
-        v = s_gsub( v, "\n",  "\n" .. (" "):rep( indent * multiplier + str_indent ) )
-        if s_match( s_gsub( v,"[^'\"]",""), '^"+$' ) then
-            acc[#acc+1] = t_concat{ "'", "", v, "'" }
-        else
-            acc[#acc+1] = t_concat{'"', s_gsub(v,'"', '\\"' ), '"' }
-        end
-    elseif "cdata" == type( v ) then
-            cdata_to_str( v, acc, indent )
-    elseif "table" == type(v) then
-        if t_cache[v] then
-            acc[#acc+1] = t_cache[v]
-        else
-            t_cache[v] = tostring( v )
-            table_tostring( v, acc, indent )
-        end
-    else
-        acc[#acc+1] = tostring( v )
-    end
-end
-
-function key_to_str ( k, acc, indent )
-    if "string" == type( k ) and s_match( k, "^[_%a][_%a%d]*$" ) then
-        acc[#acc+1] = s_gsub( k, "\n", (" "):rep( indent * multiplier + 1 ) .. "\n" )
-    else
-        acc[#acc+1] = "[ "
-        val_to_str_( k, acc, indent )
-        acc[#acc+1] = " ]"
-    end
-end
-
-function cdata_to_str(v, acc, indent)
-    acc[#acc+1] = ( " " ):rep( indent * multiplier )
-    acc[#acc+1] = "["
-    print(#acc)
-    for i = 0, #v do
-        if i % 16 == 0 and i ~= 0 then
-            acc[#acc+1] = "\n"
-            acc[#acc+1] = (" "):rep(indent * multiplier + 2)
-        end
-        acc[#acc+1] = v[i] and 1 or 0
-        acc[#acc+1] = i ~= #v and  ", " or ""
-    end
-    print(#acc, acc[1], acc[2])
-    acc[#acc+1] = "]"
-end
-
-function table_tostring ( tbl, acc, indent )
-    -- acc[#acc+1] = ( " " ):rep( indent * multiplier )
-    acc[#acc+1] = t_cache[tbl]
-    acc[#acc+1] = "{\n"
-    for k, v in pairs( tbl ) do
-        local str_indent = 1
-        acc[#acc+1] = (" "):rep((indent + 1) * multiplier)
-        key_to_str( k, acc, indent + 1)
-
-        if acc[#acc] == " ]"
-        and acc[#acc - 2] == "[ "
-        then str_indent = 8 + #acc[#acc - 1]
-        end
-
-        acc[#acc+1] = " = "
-        val_to_str_( v, acc, indent + 1, str_indent)
-        acc[#acc+1] = "\n"
-    end
-    acc[#acc+1] = ( " " ):rep( indent * multiplier )
-    acc[#acc+1] = "}"
-end
-
-function util.expose(v) print(val_to_string(v)) return v end
--------------------------------------------------------------------------------
---- Functional helpers
---
-
-function util.map (ary, func, ...)
-    if type(ary) == "function" then ary, func = func, ary end
-    local res = {}
-    for i = 1,#ary do
-        res[i] = func(ary[i], ...)
-    end
-    return res
-end
-
-function util.selfmap (ary, func, ...)
-    if type(ary) == "function" then ary, func = func, ary end
-    for i = 1,#ary do
-        ary[i] = func(ary[i], ...)
-    end
-    return ary
-end
-
-local
-function map_all (tbl, func, ...)
-    if type(tbl) == "function" then tbl, func = func, tbl end
-    local res = {}
-    for k, v in next, tbl do
-        res[k]=func(v, ...)
-    end
-    return res
-end
-
-util.map_all = map_all
-
-local
-function fold (ary, func, acc)
-    local i0 = 1
-    if not acc then
-        acc = ary[1]
-        i0 = 2
-    end
-    for i = i0, #ary do
-        acc = func(acc,ary[i])
-    end
-    return acc
-end
-util.fold = fold
-
-local
-function foldr (ary, func, acc)
-    local offset = 0
-    if not acc then
-        acc = ary[#ary]
-        offset = 1
-    end
-    for i = #ary - offset, 1 , -1 do
-        acc = func(ary[i], acc)
-    end
-    return acc
-end
-util.foldr = foldr
-
-local
-function map_fold(ary, mfunc, ffunc, acc)
-    local i0 = 1
-    if not acc then
-        acc = mfunc(ary[1])
-        i0 = 2
-    end
-    for i = i0, #ary do
-        acc = ffunc(acc,mfunc(ary[i]))
-    end
-    return acc
-end
-util.map_fold = map_fold
-
-local
-function map_foldr(ary, mfunc, ffunc, acc)
-    local offset = 0
-    if not acc then
-        acc = mfunc(ary[#acc])
-        offset = 1
-    end
-    for i = #ary - offset, 1 , -1 do
-        acc = ffunc(mfunc(ary[i], acc))
-    end
-    return acc
-end
-util.map_foldr = map_fold
-
-function util.zip(a1, a2)
-    local res, len = {}, m_max(#a1,#a2)
-    for i = 1,len do
-        res[i] = {a1[i], a2[i]}
-    end
-    return res
-end
-
-function util.zip_all(t1, t2)
-    local res = {}
-    for k,v in pairs(t1) do
-        res[k] = {v, t2[k]}
-    end
-    for k,v in pairs(t2) do
-        if res[k] == nil then
-            res[k] = {t1[k], v}
-        end
-    end
-    return res
-end
-
-function util.filter(ary,func)
-    local res = {}
-    for i = 1,#ary do
-        if func(ary[i]) then
-            t_insert(res, ary[i])
-        end
-    end
-
-end
-
-local
-function id (...) return ... end
-util.id = id
-
-
-
-local function AND (a,b) return a and b end
-local function OR  (a,b) return a or b  end
-
-function util.copy (tbl) return map_all(tbl, id) end
-
-function util.all (ary, mfunc)
-    if mfunc then
-        return map_fold(ary, mfunc, AND)
-    else
-        return fold(ary, AND)
-    end
-end
-
-function util.any (ary, mfunc)
-    if mfunc then
-        return map_fold(ary, mfunc, OR)
-    else
-        return fold(ary, OR)
-    end
-end
-
-function util.get(field)
-    return function(tbl) return tbl[field] end
-end
-
-function util.lt(ref)
-    return function(val) return val < ref end
-end
-
--- function util.lte(ref)
---     return function(val) return val <= ref end
--- end
-
--- function util.gt(ref)
---     return function(val) return val > ref end
--- end
-
--- function util.gte(ref)
---     return function(val) return val >= ref end
--- end
-
-function util.compose(f,g)
-    return function(...) return f(g(...)) end
-end
-
-function util.extend (destination, ...)
-    for i = 1, select('#', ...) do
-        for k,v in pairs((select(i, ...))) do
-            destination[k] = v
-        end
-    end
-    return destination
-end
-
-function util.setify (t)
-    local set = {}
-    for i = 1, #t do
-        set[t[i]]=true
-    end
-    return set
-end
-
-function util.arrayify (...) return {...} end
-
-
-local
-function _checkstrhelper(s)
-    return s..""
-end
-
-function util.checkstring(s, func)
-    local success, str = pcall(_checkstrhelper, s)
-    if not success then 
-        if func == nil then func = "?" end
-        error("bad argument to '"
-            ..tostring(func)
-            .."' (string expected, got "
-            ..type(s)
-            ..")",
-        2)
-    end
-    return str
-end
-
-
-
-return util
-
---                   The Romantic WTF public license.
---                   --------------------------------
---                   a.k.a. version "<3" or simply v3
---
---
---            Dear user,
---
---            The PureLPeg library
---
---                                             \
---                                              '.,__
---                                           \  /
---                                            '/,__
---                                            /
---                                           /
---                                          /
---                       has been          / released
---                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
---                under  the  Romantic   WTF Public License.
---               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---               I hereby grant you an irrevocable license to
---                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                  do what the gentle caress you want to
---                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                           with   this   lovely
---                              ~ ~ ~ ~ ~ ~ ~ ~
---                               / thing...
---                              /  ~ ~ ~ ~
---                             /    Love,
---                        #   /      '.'
---                        #######      ·
---                        #####
---                        ###
---                        #
---
---            -- Pierre-Yves
---
---
---            P.S.: Even though I poured my heart into this work,
---                  I _cannot_ provide any warranty regarding
---                  its fitness for _any_ purpose. You
---                  acknowledge that I will not be held liable
---                  for any damage its use could incur.
-]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
-assert(not sources["analizer"],"module already exists")sources["analizer"]=([===[-- <pack analizer> --
-
--- A stub at the moment.
-
-local u = require"util"
-local nop, weakkey = u.nop, u.weakkey
-
-local hasVcache, hasCmtcache , lengthcache
-    = weakkey{}, weakkey{},    weakkey{}
-
-return {
-    hasV = nop,
-    hasCmt = nop,
-    length = nop,
-    hasCapture = nop
-}
-
-
---                   The Romantic WTF public license.
---                   --------------------------------
---                   a.k.a. version "<3" or simply v3
---
---
---            Dear user,
---
---            The PureLPeg library
---
---                                             \
---                                              '.,__
---                                           \  /
---                                            '/,__
---                                            /
---                                           /
---                                          /
---                       has been          / released
---                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
---                under  the  Romantic   WTF Public License.
---               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---               I hereby grant you an irrevocable license to
---                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                  do what the gentle caress you want to
---                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                           with   this   lovely
---                              ~ ~ ~ ~ ~ ~ ~ ~
---                               / thing...
---                              /  ~ ~ ~ ~
---                             /    Love,
---                        #   /      '.'
---                        #######      ·
---                        #####
---                        ###
---                        #
---
---            -- Pierre-Yves
---
---
---            P.S.: Even though I poured my heart into this work,
---                  I _cannot_ provide any warranty regarding
---                  its fitness for _any_ purpose. You
---                  acknowledge that I will not be held liable
---                  for any damage its use could incur.
-]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
 assert(not sources["re"],"module already exists")sources["re"]=([===[-- <pack re> --
 
 -- re.lua by Roberto Ierusalimschy. see LICENSE in the root folder.
@@ -4399,103 +4485,17 @@ return re
 
 end
 ]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
-assert(not sources["locale"],"module already exists")sources["locale"]=([===[-- <pack locale> --
-
--- Locale definition.
-
-local extend = require"util".extend
-
-
-
-local _ENV = require"util".noglobals() ----------------------------------------
-
-
-
--- We'll limit ourselves to the standard C locale for now.
--- see http://wayback.archive.org/web/20120310215042/http://www.utas.edu.au...
--- .../infosys/info/documentation/C/CStdLib.html#ctype.h
-
-return function(Builder, LL) -- Module wrapper {-------------------------------
-
-local R, S = LL.R, LL.S
-
-local locale = {}
-locale["cntrl"] = R"\0\31" + "\127"
-locale["digit"] = R"09"
-locale["lower"] = R"az"
-locale["print"] = R" ~" -- 0x20 to 0xee
-locale["space"] = S" \f\n\r\t\v" -- \f == form feed (for a printer), \v == vtab
-locale["upper"] = R"AZ"
-
-locale["alpha"]  = locale["lower"] + locale["upper"]
-locale["alnum"]  = locale["alpha"] + locale["digit"]
-locale["graph"]  = locale["print"] - locale["space"]
-locale["punct"]  = locale["graph"] - locale["alnum"]
-locale["xdigit"] = locale["digit"] + R"af" + R"AF"
-
-
-function LL.locale (t)
-    return extend(t or {}, locale)
-end
-
-end -- Module wrapper --------------------------------------------------------}
-
-
---                   The Romantic WTF public license.
---                   --------------------------------
---                   a.k.a. version "<3" or simply v3
---
---
---            Dear user,
---
---            The LuLPeg library
---
---                                             \
---                                              '.,__
---                                           \  /
---                                            '/,__
---                                            /
---                                           /
---                                          /
---                       has been          / released
---                  ~ ~ ~ ~ ~ ~ ~ ~       ~ ~ ~ ~ ~ ~ ~ ~
---                under  the  Romantic   WTF Public License.
---               ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~`,´ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---               I hereby grant you an irrevocable license to
---                ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                  do what the gentle caress you want to
---                       ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~ ~
---                           with   this   lovely
---                              ~ ~ ~ ~ ~ ~ ~ ~
---                               / thing...
---                              /  ~ ~ ~ ~
---                             /    Love,
---                        #   /      '.'
---                        #######      ·
---                        #####
---                        ###
---                        #
---
---            -- Pierre-Yves
---
---
---            P.S.: Even though I poured my heart into this work,
---                  I _cannot_ provide any warranty regarding
---                  its fitness for _any_ purpose. You
---                  acknowledge that I will not be held liable
---                  for any damage its use could incur.
-]===]):gsub('\\([%]%[]===)\\([%]%[])','%1%2')
 local add
-if not pcall(function() add = require"aioruntime".add end) then
-        local loadstring=_G.loadstring or _G.load; local preload = require"package".preload
+--if not pcall(function() add = require"aioruntime".add end) then
+	local loadstring=_G.loadstring or _G.load; local preload = require"package".preload
 	add = function(name, rawcode)
-		if not preload[name] then
-		        preload[name] = function(...) return assert(loadstring(rawcode), "loadstring: "..name.." failed")(...) end
-		else
-			print("WARNING: overwrite "..name)
+		if preload[name] and putwarning and type(putwarning)=="function" then
+			putwarning("WARNING: overwrite "..name)
 		end
-        end
-end
+		preload[name] = function(...) return assert(loadstring(rawcode), "loadstring: "..name.." failed")(...) end
+		preload[name..".__bundle"] = function() return {_BUNDLE=true,_BUNDLEFORMAT="v0.1.0.alpha1",_BUNDLEOF=name} end
+	end
+--end
 for name, rawcode in pairs(sources) do add(name, rawcode, priorities[name]) end
 end; --}};
 do -- preload auto aliasing...
